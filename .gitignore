@@ -1,0 +1,12 @@
+# Block personally-identifying info from ever being committed
+*.egg-info/
+src/
+dist/
+build/
+*.egg
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/

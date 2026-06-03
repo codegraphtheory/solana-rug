@@ -1,0 +1,61 @@
+[project]
+name = "solana-rug"
+version = "0.1.0"
+description = "On-chain rug-pull detection for Solana tokens — Safety Score 0-100, zero paid APIs required."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Hermes Agent / Solana Rug Guard" },
+]
+
+keywords = ["solana", "rug-check", "blockchain", "security", "defi", "crypto"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/NousResearch/hermes-agent/tree/main/optional-skills/blockchain/solana-rug"
+Repository = "https://github.com/NousResearch/hermes-agent"
+"Bug Tracker" = "https://github.com/NousResearch/hermes-agent/issues"
+
+[project.scripts]
+solana-rug = "rugguard:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.3",
+    "mypy>=1.8",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: tests that hit the live Solana blockchain (use --runslow to run)",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["solana_rug*"]

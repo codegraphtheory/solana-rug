@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solana Rug Guard — On-Chain Rug-Pull Detection</title>
+<meta name="description" content="13-factor on-chain rug-pull detection for Solana tokens. Check any mint or wallet for red flags. No paid APIs. Open source. MIT licensed.">
+<meta name="keywords" content="solana, rug check, token analysis, blockchain security, pump.fun, memecoin safety, defi security">
+<meta property="og:title" content="Solana Rug Guard — On-Chain Rug-Pull Detection">
+<meta property="og:description" content="13-factor on-chain rug-pull detection. Check any Solana token for red flags. Open source. No paid APIs.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0a0a0f">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0a0a0f; color: #e4e4e7; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  @media (max-width: 480px) { .container { padding: 0 16px; } }
+
+  /* Navigation */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(10,10,15,0.88); backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid #1a1a2e;
+  }
+  nav .container { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { font-weight: 800; font-size: 20px; color: #fff; text-decoration: none; flex-shrink: 0; }
+  .logo span { color: #f59f00; }
+  .nav-links { display: flex; gap: 28px; list-style: none; align-items: center; }
+  .nav-links a { color: #a0a0b0; text-decoration: none; font-size: 14px; font-weight: 500; transition: color .2s; white-space: nowrap; }
+  .nav-links a:hover { color: #fff; }
+  .nav-cta {
+    background: #f59f00; color: #0a0a0f !important; padding: 8px 18px;
+    border-radius: 8px; font-weight: 600 !important; font-size: 13px !important;
+  }
+  .nav-cta:hover { background: #fcc419 !important; }
+
+  /* Mobile hamburger */
+  .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
+  .hamburger span { display: block; width: 24px; height: 2px; background: #e4e4e7; border-radius: 2px; transition: all .3s; }
+  .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+  .hamburger.active span:nth-child(2) { opacity: 0; }
+  .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+  .mobile-menu {
+    display: none; position: fixed; top: 64px; left: 0; right: 0;
+    background: rgba(10,10,15,0.98); backdrop-filter: blur(14px);
+    border-bottom: 1px solid #1a1a2e; padding: 16px 24px;
+    flex-direction: column; gap: 12px; z-index: 99;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu a { color: #a0a0b0; text-decoration: none; font-size: 16px; font-weight: 500; padding: 10px 0; border-bottom: 1px solid #1a1a2e; }
+  .mobile-menu a:last-child { border-bottom: none; }
+  .mobile-menu .nav-cta { text-align: center; margin-top: 8px; }
+
+  @media (max-width: 700px) {
+    .nav-links { display: none; }
+    .hamburger { display: flex; }
+  }
+
+  /* Hero */
+  .hero {
+    padding: clamp(100px, 14vw, 160px) 0 clamp(60px, 8vw, 100px);
+    text-align: center;
+    background: radial-gradient(ellipse at 50% 0%, #1a1a2e 0%, #0a0a0f 70%);
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -50%; left: 50%;
+    width: min(800px, 120vw); height: min(800px, 120vw);
+    background: radial-gradient(circle, rgba(245,159,0,0.04) 0%, transparent 70%);
+    transform: translate(-50%, 0); pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block; padding: 6px 14px; border-radius: 20px;
+    background: rgba(245,159,0,0.1); border: 1px solid rgba(245,159,0,0.2);
+    color: #f59f00; font-size: clamp(11px, 2.5vw, 13px); font-weight: 600; margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 7vw, 60px); font-weight: 800; color: #fff;
+    line-height: 1.15; margin-bottom: 20px;
+  }
+  .hero h1 em { font-style: normal; color: #f59f00; }
+  .hero p {
+    font-size: clamp(15px, 2.5vw, 18px); color: #a0a0b0;
+    max-width: 620px; margin: 0 auto 36px; line-height: 1.7;
+    padding: 0 12px;
+  }
+  .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary, .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: clamp(12px, 2vw, 14px) clamp(20px, 3vw, 28px);
+    border-radius: 10px; font-weight: 700; font-size: clamp(13px, 2vw, 15px);
+    text-decoration: none; transition: all .2s; white-space: nowrap;
+  }
+  .btn-primary { background: #f59f00; color: #0a0a0f; }
+  .btn-primary:hover { background: #fcc419; transform: translateY(-1px); }
+  .btn-secondary { background: #1a1a2e; color: #e4e4e7; border: 1px solid #2a2a3e; }
+  .btn-secondary:hover { background: #2a2a3e; border-color: #3a3a5e; }
+
+  .hero-stats {
+    display: flex; justify-content: center; gap: clamp(16px, 4vw, 48px);
+    margin-top: clamp(36px, 6vw, 60px); flex-wrap: wrap;
+  }
+  .hero-stat { text-align: center; min-width: 70px; }
+  .hero-stat-number { font-size: clamp(22px, 4vw, 28px); font-weight: 800; color: #fff; }
+  .hero-stat-label { font-size: clamp(11px, 2vw, 13px); color: #6b6b80; margin-top: 4px; white-space: nowrap; }
+
+  /* Sections */
+  section { padding: clamp(50px, 8vw, 90px) 0; }
+  .section-wrap { background: #0d0d14; }
+  .section-label {
+    display: inline-block; font-size: clamp(11px, 2vw, 12px); font-weight: 600;
+    color: #f59f00; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: clamp(22px, 4.5vw, 32px); font-weight: 800; color: #fff; margin-bottom: 16px;
+  }
+  .section-sub {
+    font-size: clamp(14px, 2.2vw, 16px); color: #6b6b80;
+    max-width: 560px; line-height: 1.7;
+  }
+
+  /* Checks Grid */
+  .checks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+    gap: clamp(12px, 2vw, 16px); margin-top: 36px;
+  }
+  .check-card {
+    background: #111118; border: 1px solid #1a1a2e; border-radius: 12px;
+    padding: clamp(20px, 3vw, 24px); transition: all .2s;
+  }
+  .check-card:hover { border-color: #2a2a3e; background: #14141c; }
+  .check-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .check-card-number {
+    width: clamp(28px, 4vw, 32px); height: clamp(28px, 4vw, 32px);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .num-green { background: rgba(64,192,87,0.15); color: #40c057; }
+  .num-orange { background: rgba(245,159,0,0.15); color: #f59f00; }
+  .num-red { background: rgba(255,75,75,0.15); color: #ff4b4b; }
+  .num-blue { background: rgba(69,151,255,0.15); color: #4797ff; }
+  .num-purple { background: rgba(140,103,255,0.15); color: #8c67ff; }
+  .check-card h4 { font-size: clamp(13px, 2vw, 14px); font-weight: 600; color: #fff; }
+  .check-card p { font-size: clamp(12px, 1.8vw, 13px); color: #6b6b80; line-height: 1.5; }
+  .check-card-max { font-size: 11px; color: #4a4a60; margin-top: 8px; font-weight: 500; }
+
+  /* Steps */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+    gap: clamp(16px, 2vw, 24px); margin-top: 36px;
+  }
+  .step {
+    background: #111118; border: 1px solid #1a1a2e; border-radius: 12px;
+    padding: clamp(24px, 3vw, 32px); position: relative;
+  }
+  .step-num {
+    font-size: clamp(32px, 5vw, 42px); font-weight: 800;
+    color: rgba(245,159,0,0.08); position: absolute; top: 16px; right: 20px; line-height: 1;
+  }
+  .step h4 { font-size: clamp(14px, 2.2vw, 16px); font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .step p { font-size: clamp(13px, 1.8vw, 14px); color: #6b6b80; line-height: 1.6; }
+  .step code { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f59f00; }
+
+  /* Trust */
+  .trust-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+    gap: clamp(12px, 2vw, 16px); margin-top: 36px;
+  }
+  .trust-card {
+    background: #111118; border: 1px solid #1a1a2e; border-radius: 12px;
+    padding: clamp(24px, 3vw, 28px); text-align: center;
+  }
+  .trust-icon { font-size: clamp(28px, 4vw, 32px); margin-bottom: 12px; display: block; }
+  .trust-card h4 { font-size: clamp(14px, 2vw, 15px); font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .trust-card p { font-size: clamp(12px, 1.8vw, 13px); color: #6b6b80; line-height: 1.5; }
+
+  /* Install */
+  .install-box {
+    background: #111118; border: 1px solid #1a1a2e; border-radius: 12px;
+    padding: clamp(24px, 3vw, 32px); margin-top: 24px;
+  }
+  .install-box h4 { font-size: clamp(13px, 2vw, 14px); font-weight: 600; color: #a0a0b0; margin-bottom: 12px; }
+  .install-box p { font-size: clamp(12px, 1.8vw, 13px); }
+  pre {
+    font-family: 'JetBrains Mono', monospace; font-size: clamp(11px, 1.8vw, 13px);
+    background: #0a0a0f; color: #e4e4e7; padding: clamp(12px, 2vw, 16px) clamp(14px, 2vw, 20px);
+    border-radius: 8px; overflow-x: auto; border: 1px solid #1a1a2e; line-height: 1.7;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  pre .hl { color: #f59f00; }
+  pre .fn { color: #69db7c; }
+
+  /* Support */
+  .support-box {
+    background: linear-gradient(135deg, #1a1a2e 0%, #0a0a0f 100%);
+    border: 1px solid #2a2a3e; border-radius: clamp(12px, 2vw, 16px);
+    padding: clamp(28px, 5vw, 48px); text-align: center; margin-top: 36px;
+  }
+  .support-box h3 { font-size: clamp(18px, 3vw, 22px); font-weight: 700; color: #fff; margin-bottom: 12px; }
+  .support-box p { color: #a0a0b0; max-width: 480px; margin: 0 auto 24px; font-size: clamp(13px, 2vw, 15px); padding: 0 8px; }
+  .token-address {
+    font-family: 'JetBrains Mono', monospace; font-size: clamp(11px, 1.8vw, 13px);
+    background: #0a0a0f; border: 1px solid #2a2a3e; border-radius: 8px;
+    padding: clamp(10px, 1.5vw, 12px) clamp(14px, 2vw, 20px);
+    display: inline-block; color: #f59f00; word-break: break-all; max-width: 100%;
+  }
+
+  /* Score demo */
+  .score-demo {
+    background: #111118; border: 1px solid #1a1a2e; border-radius: 12px;
+    padding: clamp(16px, 3vw, 24px) clamp(20px, 3vw, 32px); margin-top: 24px;
+    display: flex; align-items: center; gap: clamp(16px, 3vw, 24px); flex-wrap: wrap;
+  }
+  .score-demo-visual {
+    width: clamp(60px, 10vw, 80px); height: clamp(60px, 10vw, 80px);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-weight: 800; font-size: clamp(18px, 3vw, 22px);
+  }
+  .score-green { background: rgba(64,192,87,0.15); color: #40c057; border: 2px solid #40c057; }
+  .score-yellow { background: rgba(245,159,0,0.15); color: #f59f00; border: 2px solid #f59f00; }
+  .score-demo-info h4 { font-size: clamp(14px, 2vw, 15px); color: #fff; }
+  .score-demo-info p { font-size: clamp(12px, 1.8vw, 13px); color: #6b6b80; margin-top: 2px; }
+
+  /* Footer */
+  footer { border-top: 1px solid #1a1a2e; padding: 32px 0; text-align: center; }
+  footer p { font-size: clamp(12px, 1.8vw, 13px); color: #5c5c72; }
+  footer a { color: #a0a0b0; text-decoration: none; }
+  footer a:hover { color: #fff; }
+  .footer-links {
+    display: flex; justify-content: center; gap: clamp(16px, 3vw, 24px);
+    margin-bottom: 16px; list-style: none; flex-wrap: wrap;
+  }
+  .footer-links a { font-size: clamp(12px, 1.8vw, 13px); }
+
+  @media (max-width: 480px) {
+    .hero-stats { gap: 12px; }
+    .hero-stat { min-width: 60px; }
+    .score-demo { flex-direction: column; text-align: center; }
+  }
+
+  @media (max-width: 380px) {
+    .hero-actions { flex-direction: column; align-items: stretch; }
+    .hero-actions a { justify-content: center; }
+  }
+
+  /* Animations */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .animate { animation: fadeUp .6s ease both; }
+  .delay-1 { animation-delay: .1s; }
+  .delay-2 { animation-delay: .2s; }
+  .delay-3 { animation-delay: .3s; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="#" class="logo">Rug<span>Guard</span></a>
+    <ul class="nav-links">
+      <li><a href="#checks">Checks</a></li>
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#trust">Trust</a></li>
+      <li><a href="#install">Install</a></li>
+      <li><a href="https://github.com/rugpullnet/solana-rug" target="_blank">GitHub</a></li>
+      <li><a href="#support" class="nav-cta">Support $RUG</a></li>
+    </ul>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#checks" onclick="closeMenu()">Checks</a>
+  <a href="#how" onclick="closeMenu()">How It Works</a>
+  <a href="#trust" onclick="closeMenu()">Trust</a>
+  <a href="#install" onclick="closeMenu()">Install</a>
+  <a href="https://github.com/rugpullnet/solana-rug" target="_blank">GitHub</a>
+  <a href="#support" class="nav-cta" onclick="closeMenu()">Support $RUG</a>
+</div>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge animate">Open Source · MIT Licensed · No Paid APIs</div>
+    <h1 class="animate delay-1">Know what you're buying.<br><em>Before</em> you buy it.</h1>
+    <p class="animate delay-2">
+      13 deterministic risk checks against any Solana token or wallet.
+      Fully on-chain. Fully auditable. Zero API keys required.
+    </p>
+    <div class="hero-actions animate delay-3">
+      <a href="#install" class="btn-primary">Get Started</a>
+      <a href="https://github.com/rugpullnet/solana-rug" class="btn-secondary" target="_blank">View on GitHub →</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-number">13</div><div class="hero-stat-label">Risk Checks</div></div>
+      <div class="hero-stat"><div class="hero-stat-number">0</div><div class="hero-stat-label">API Keys</div></div>
+      <div class="hero-stat"><div class="hero-stat-number">100%</div><div class="hero-stat-label">On-Chain</div></div>
+      <div class="hero-stat"><div class="hero-stat-number">MIT</div><div class="hero-stat-label">License</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="checks">
+  <div class="container">
+    <div class="section-label">Detection Engine</div>
+    <h2 class="section-title">13 Factors. One Score.</h2>
+    <p class="section-sub">Every check is deterministic — same mint address always produces the same score, with a full per-factor breakdown showing exactly why.</p>
+
+    <div class="score-demo animate">
+      <div class="score-demo-visual score-yellow">79</div>
+      <div class="score-demo-info">
+        <h4>Example: $RUG Token</h4>
+        <p>Young token, thin liquidity, suspicious name flagged. On-chain mechanics clean — no hidden minting, no freeze risk, LP locked on pumpSwap.</p>
+      </div>
+    </div>
+
+    <div class="checks-grid">
+      <div class="check-card animate delay-1">
+        <div class="check-card-header"><div class="check-card-number num-red">1</div><h4>Mint Authority</h4></div>
+        <p>Checks if the dev can still print unlimited new tokens. If the mint authority is not set to null, anyone holding is at the creator's mercy.</p>
+        <div class="check-card-max">Max 15 pts</div>
+      </div>
+      <div class="check-card animate delay-1">
+        <div class="check-card-header"><div class="check-card-number num-orange">2</div><h4>Freeze Authority</h4></div>
+        <p>Detects if the dev retains the ability to freeze any holder's token account — a classic vector for coordinated exit scams.</p>
+        <div class="check-card-max">Max 5 pts</div>
+      </div>
+      <div class="check-card animate delay-1">
+        <div class="check-card-header"><div class="check-card-number num-red">3</div><h4>LP Locked / Burned</h4></div>
+        <p>Verifies that liquidity pool tokens are burned or locked. Searches Raydium, pumpSwap, Meteora, and Orca via RPC + DexScreener.</p>
+        <div class="check-card-max">Max 15 pts</div>
+      </div>
+      <div class="check-card animate delay-2">
+        <div class="check-card-header"><div class="check-card-number num-orange">4</div><h4>Liquidity Depth</h4></div>
+        <p>Flags pools under $20k. A single modest sell can move price 10-20% in thin pools, making them easy to manipulate.</p>
+        <div class="check-card-max">Max 5 pts</div>
+      </div>
+      <div class="check-card animate delay-2">
+        <div class="check-card-header"><div class="check-card-number num-orange">5</div><h4>Holder Concentration</h4></div>
+        <p>Measures top-10 wallet concentration. Flags tokens where a handful of wallets control >50% of the circulating supply.</p>
+        <div class="check-card-max">Max 10 pts</div>
+      </div>
+      <div class="check-card animate delay-2">
+        <div class="check-card-header"><div class="check-card-number num-orange">6</div><h4>Dev Wallet Holdings</h4></div>
+        <p>Checks if the deployer wallet holds more than 15% of the circulating supply — a large dev bag means a single sell can crater the chart.</p>
+        <div class="check-card-max">Max 5 pts</div>
+      </div>
+      <div class="check-card animate delay-3">
+        <div class="check-card-header"><div class="check-card-number num-orange">7</div><h4>Token Age</h4></div>
+        <p>Over 90% of rug-pulls happen in the first week. Checks on-chain age via DexScreener creation timestamp. Under 7 days = flagged.</p>
+        <div class="check-card-max">Max 5 pts</div>
+      </div>
+      <div class="check-card animate delay-3">
+        <div class="check-card-header"><div class="check-card-number num-orange">8</div><h4>Mint History</h4></div>
+        <p>Scans recent transactions to detect if the dev minted additional tokens after the initial launch — a sign of supply manipulation.</p>
+        <div class="check-card-max">Max 5 pts</div>
+      </div>
+      <div class="check-card animate delay-3">
+        <div class="check-card-header"><div class="check-card-number num-red">9</div><h4>Honeypot Detection</h4></div>
+        <p>Simulates a sell through the Jupiter quote API. If the token cannot be sold or has extreme price impact (>50%), it's likely a honeypot.</p>
+        <div class="check-card-max">Max 10 pts</div>
+      </div>
+      <div class="check-card animate delay-1">
+        <div class="check-card-header"><div class="check-card-number num-red">10</div><h4>Sniper Bot Detection</h4></div>
+        <p>Analyzes the first 15 mint signatures. If multiple wallets bought within 50 slots of each other, the token was targeted by automated sniping bots.</p>
+        <div class="check-card-max">Max 10 pts</div>
+      </div>
+      <div class="check-card animate delay-1">
+        <div class="check-card-header"><div class="check-card-number num-purple">11</div><h4>Suspicious Name</h4></div>
+        <p>Flags tokens named "rug", "scam", "ponzi", "honeypot", or similar — these names actively discourage organic buyers and attract only bots.</p>
+        <div class="check-card-max">Max 5 pts</div>
+      </div>
+      <div class="check-card animate delay-2">
+        <div class="check-card-header"><div class="check-card-number num-orange">12</div><h4>Sub-Penny Price</h4></div>
+        <p>Flags tokens priced below $0.0001 that are either young (<30 days) or have thin liquidity (<$100k). Sub-penny tokens statistically have near-zero organic demand.</p>
+        <div class="check-card-max">Max 5 pts</div>
+      </div>
+      <div class="check-card animate delay-2">
+        <div class="check-card-header"><div class="check-card-number num-red">13</div><h4>Deployer Dump Risk</h4></div>
+        <p>Calculates whether the deployer's holdings exceed 50% of the pool's total value. If yes, the dev can crash the market by selling.</p>
+        <div class="check-card-max">Max 5 pts</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="section-wrap">
+  <div class="container">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">Four Data Sources. One Pipeline.</h2>
+    <p class="section-sub">Every analysis runs the same deterministic pipeline — no ML, no inference, no hidden state. The same mint always produces the same result.</p>
+    <div class="steps">
+      <div class="step animate">
+        <div class="step-num">01</div>
+        <h4>Solana RPC</h4>
+        <p>Fetches mint metadata, token accounts, and transaction history from public Solana RPC nodes. Retries across 4 endpoints with round-robin fallback when rate-limited.</p>
+      </div>
+      <div class="step animate delay-1">
+        <div class="step-num">02</div>
+        <h4>DexScreener API</h4>
+        <p>Enriches with real pool data — price, liquidity depth, 24h volume, trading pair info, and creation timestamp. Falls back gracefully when <code>getProgramAccounts</code> is blocked.</p>
+      </div>
+      <div class="step animate delay-2">
+        <div class="step-num">03</div>
+        <h4>Transaction Analysis</h4>
+        <p>Paginates mint signatures to detect sniping patterns, post-launch minting activity, and deployer behavior. Pinned to a single RPC node for pagination consistency.</p>
+      </div>
+      <div class="step animate delay-3">
+        <div class="step-num">04</div>
+        <h4>Risk Scoring</h4>
+        <p>13 independent checks produce a weighted 0-100 safety score. No upper cap — more flags always means a lower score. Each check is self-contained and independently verifiable.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="trust">
+  <div class="container">
+    <div class="section-label">Trust</div>
+    <h2 class="section-title">No Black Boxes. No Hidden Agendas.</h2>
+    <p class="section-sub">Everything you need to verify the tool's integrity is in the repo. Nothing is hidden, nothing is collected, nothing is sold.</p>
+    <div class="trust-grid">
+      <div class="trust-card animate"><span class="trust-icon">🔍</span><h4>Fully Auditable</h4><p>The entire engine is a single Python file. Read it. Run it offline. Verify every check against the source code.</p></div>
+      <div class="trust-card animate delay-1"><span class="trust-icon">⚡</span><h4>Deterministic</h4><p>Same mint address always produces the same score. No ML, no inference, no floating-point ambiguity. Every factor is a hard integer.</p></div>
+      <div class="trust-card animate delay-2"><span class="trust-icon">🔗</span><h4>Fully On-Chain</h4><p>Every check uses public Solana RPC nodes or free public APIs. No private databases, no premium endpoints, no registration.</p></div>
+      <div class="trust-card animate delay-3"><span class="trust-icon">📡</span><h4>No Telemetry</h4><p>No analytics, no tracking pixels, no phone-home. The tool makes exactly the HTTP calls you can see in the source. Nothing more.</p></div>
+      <div class="trust-card animate"><span class="trust-icon">📜</span><h4>MIT Licensed</h4><p>Free to use, modify, and redistribute. Fork it, vendor it, ship it as part of your own stack — no restrictions.</p></div>
+      <div class="trust-card animate delay-1"><span class="trust-icon">🧩</span><h4>Zero Dependencies</h4><p>Runs on Python 3.11+ standard library. No pip install, no npm install, no container required. A single file and it works.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="install" class="section-wrap">
+  <div class="container">
+    <div class="section-label">Get Started</div>
+    <h2 class="section-title">Install Any Way You Want.</h2>
+    <p class="section-sub">All packages are published to trusted sources. Always install from
+      <a href="https://pypi.org/project/solana-rug/" style="color:#f59f00;">PyPI</a> or
+      <a href="https://github.com/rugpullnet/solana-rug/releases" style="color:#f59f00;">GitHub Releases</a>.</p>
+
+    <div class="install-box animate">
+      <h4>Hermes Agent Skill (recommended)</h4>
+      <pre>hermes skills install official/blockchain/solana-rug</pre>
+      <p style="color:#6b6b80; margin-top:8px;">Then ask: <em style="color:#e4e4e7;">"Hey Hermes, is this token safe?"</em></p>
+    </div>
+    <div class="install-box animate delay-1">
+      <h4>Single File (no install at all)</h4>
+      <pre>curl -OL <span class="fn">https://github.com/rugpullnet/solana-rug/releases/latest/download/rugguard.py</span>
+python3 rugguard.py token <span class="hl">DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263</span> --md</pre>
+    </div>
+    <div class="install-box animate delay-2">
+      <h4>PyPI (trusted package index)</h4>
+      <pre>pip install solana-rug
+solana-rug token <span class="hl">DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263</span></pre>
+    </div>
+    <div class="install-box animate delay-3">
+      <h4>From Source</h4>
+      <pre>git clone <span class="fn">https://github.com/rugpullnet/solana-rug.git</span>
+<span class="hl">cd</span> solana-rug
+python3 scripts/rugguard.py --help</pre>
+    </div>
+  </div>
+</section>
+
+<section id="support">
+  <div class="container">
+    <div class="support-box animate">
+      <h3>Support Solana Rug Guard</h3>
+      <p>This tool is free, open source, and will always remain free. If it's helped you avoid a bad trade or understand a token better, consider supporting the project by grabbing a small bag of $RUG.</p>
+      <div class="token-address">F4J5LKyEQraMem8nspPAzwHXaaKMMDsxyt7GUK94pump</div>
+      <p style="margin-top:16px; font-size:13px; color:#6b6b80;">
+        Trade on <strong style="color:#e4e4e7;">pumpSwap</strong> (RUG/SOL) ·
+        <a href="https://dexscreener.com/solana/4sHKYieWsGtrmtqjdXPRzSdVywXZ1jUQGbM8QbkBXMB9" style="color:#f59f00;" target="_blank">View Chart →</a>
+      </p>
+      <p style="margin-top:8px; font-size:12px; color:#5c5c72;">Every buy adds locked liquidity to the pool and helps keep development sustainable.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <ul class="footer-links">
+      <li><a href="https://github.com/rugpullnet/solana-rug">GitHub</a></li>
+      <li><a href="https://pypi.org/project/solana-rug/">PyPI</a></li>
+      <li><a href="#checks">Checks</a></li>
+      <li><a href="#install">Install</a></li>
+      <li><a href="#support">Support</a></li>
+    </ul>
+    <p>Solana Rug Guard · MIT Licensed · No paid APIs required</p>
+    <p style="margin-top:4px;">Built for Hermes Agent · Part of <a href="https://github.com/rugpullnet">RugpullNet</a></p>
+  </div>
+</footer>
+
+<script>
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobileMenu');
+  hamburger.addEventListener('click', () => {
+    hamburger.classList.toggle('active');
+    mobileMenu.classList.toggle('open');
+  });
+  function closeMenu() {
+    hamburger.classList.remove('active');
+    mobileMenu.classList.remove('open');
+  }
+</script>
+
+</body>
+</html>
