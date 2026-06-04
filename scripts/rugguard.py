@@ -751,15 +751,27 @@ SUSPICIOUS_TOKEN_KEYWORDS = [
     "rug", "scam", "ponzi", "honeypot", "drain", "phish", "shit",
     "moonbag", "pumpndump", "abandon", "test", "troll", "fake",
 ]
-def check_sniper_patterns(mint: str) -> bool:
+def check_sniper_patterns(mint: str, dex_data: dict | None = None) -> bool:
     """Check if bot snipers bought within the first 10 transactions.
-    Returns True if suspicious buying pattern detected."""
+    Returns True if suspicious buying pattern detected.
+
+    For most SPL tokens, uses getSignaturesForAddress on the mint address.
+    For Pump.fun / Token-2022 tokens, uses the pair/pool address from DexScreener
+    since the actual buy transactions happen on the pool, not the mint.
+    """
     cache_key = f"sniper:{mint}"
     cached = _cached(cache_key)
     if cached is not None:
         return cached
 
-    sigs = _rpc_call("getSignaturesForAddress", [mint, {"limit": 15}], retries=1, pin_rpc=True)
+    # For Pump.fun / AMM tokens, check the pair address instead of the mint
+    target = mint
+    if dex_data and dex_data.get("pair_address"):
+        dex_name = (dex_data.get("dex", "") or "").lower()
+        # pumpSwap, raydium, meteora pools have buy activity on the pair address
+        target = dex_data["pair_address"]
+
+    sigs = _rpc_call("getSignaturesForAddress", [target, {"limit": 15}], retries=1, pin_rpc=True)
     if not sigs or len(sigs) < 5:
         _set_cache(cache_key, False)
         return False
@@ -1054,9 +1066,7 @@ def rug_check_token(mint: str) -> RugReport:
     if age_days < 1:
         flags.token_very_young = True
 
-    # 8. Sniper pattern detection
-    if check_sniper_patterns(mint):
-        flags.sniper_detected = True
+    # 8. Sniper pattern detection (runs after dex_data for pool-address fallback)
 
     # 9. Suspicious name check (tokenMetadata + DexScreener fallback)
     if check_suspicious_name(token.name, token.symbol):
@@ -1091,6 +1101,10 @@ def rug_check_token(mint: str) -> RugReport:
             risky, _ = compute_deployer_dump_risk(holders.dev_wallet_pct, liq)
             if risky:
                 flags.deployer_can_crash_price = True
+
+    # Sniper pattern detection (after dex_data so we can use pool address for Pump.fun)
+    if check_sniper_patterns(mint, dex_data):
+        flags.sniper_detected = True
 
     # 11. Compute score (now includes dex_data for thin liquidity, age checks)
     score, score_warnings = compute_score_components(
