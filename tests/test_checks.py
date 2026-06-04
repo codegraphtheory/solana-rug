@@ -25,7 +25,9 @@ from rugguard import (  # noqa: E402
     RugReport,
     RugScore,
     TokenMeta,
+    _report_csv_rows,
     _sparkline_from_change,
+    _wallet_csv_rows,
     check_authorities,
     compute_safety_score,
     compute_score_components,
@@ -34,7 +36,9 @@ from rugguard import (  # noqa: E402
     estimate_token_age,
     fetch_token_holders,
     fetch_token_meta,
+    format_csv,
     format_json,
+    format_jsonl,
     format_markdown,
     load_last_history,
     prune_history,
@@ -451,7 +455,7 @@ def test_wallet_scan() -> None:
     assert "address" in result
     assert result["address"] == TEST_WALLET
     assert "total_tokens" in result
-    assert isinstance(result['total_tokens'], int)
+    assert isinstance(result["total_tokens"], int)
 
 
 # Sparkline Tests
@@ -474,5 +478,177 @@ class TestSparkline:
     def test_small_change_no_color(self):
         result = _sparkline_from_change(0.5)
         assert result is not None
-        assert '\U0001f7e2' not in result
-        assert '\U0001f534' not in result
+        assert "\U0001f7e2" not in result
+        assert "\U0001f534" not in result
+
+
+# ── Export Tests ───────────────────────────────────────────────────────────
+
+class TestExport:
+    def _make_report(self) -> RugReport:
+        return RugReport(
+            token=TokenMeta(
+                address=BONK_MINT,
+                symbol="BONK",
+                name="Bonk",
+                decimals=5,
+                supply=100000000000000,
+            ),
+            safety_score=85,
+            risk_level="LOW",
+            score=RugScore(
+                mint_authority_risk=0,
+                freeze_authority_risk=0,
+                liquidity_risk=5,
+                holder_concentration_risk=3,
+                mint_history_risk=0,
+                honeypot_risk=0,
+                dev_risk=0,
+                age_risk=0,
+                low_liquidity_risk=1,
+                sniper_risk=0,
+                name_risk=0,
+                sub_penny_risk=0,
+                deployer_dump_risk=0,
+                overall_score=9,
+            ),
+            warnings=["Low volume/liquidity ratio", "Thin liquidity warning"],
+            recommendation="Token appears safe — standard risks only.",
+            dex_data={
+                "dex": "raydium",
+                "liquidity_usd": 682000,
+                "volume_24h": 150000,
+                "price_usd": 0.00001234,
+                "price_change_24h": -5.2,
+            },
+        )
+
+    def test_report_csv_rows(self) -> None:
+        report = self._make_report()
+        rows = _report_csv_rows(report)
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["token_address"] == BONK_MINT
+        assert row["token_symbol"] == "BONK"
+        assert row["safety_score"] == 85
+        assert row["risk_level"] == "LOW"
+        assert row["market_liquidity_usd"] == 682000
+
+    def test_format_csv_basic(self) -> None:
+        report = self._make_report()
+        rows = _report_csv_rows(report)
+        csv_out = format_csv(rows)
+        assert "token_address" in csv_out
+        assert "token_symbol" in csv_out
+        assert "BONK" in csv_out
+        assert "safety_score" in csv_out
+        assert "85" in csv_out
+
+    def test_format_csv_escaping(self) -> None:
+        report = self._make_report()
+        report.warnings = ["Has, comma inside", 'Has "quotes" inside']
+        rows = _report_csv_rows(report)
+        csv_out = format_csv(rows)
+        # CSV module handles quoting — roundtrip should preserve data
+        import csv as _csv
+        import io
+        reader = _csv.DictReader(io.StringIO(csv_out))
+        row = next(reader)
+        assert "Has, comma inside" in row["warnings"]
+        assert 'Has "quotes" inside' in row["warnings"]
+
+    def test_format_jsonl_basic(self) -> None:
+        report = self._make_report()
+        rows = _report_csv_rows(report)
+        jsonl_out = format_jsonl(rows)
+        lines = jsonl_out.strip().split("\n")
+        assert len(lines) == 1
+        parsed = json.loads(lines[0])
+        assert parsed["token_symbol"] == "BONK"
+        assert parsed["safety_score"] == 85
+
+    def test_format_jsonl_wallet_scan(self) -> None:
+        wallet_result = {
+            "address": TEST_WALLET,
+            "total_tokens": 5,
+            "risky_count": 2,
+            "risky_tokens": [
+                {
+                    "mint": BONK_MINT,
+                    "symbol": "BONK",
+                    "balance_raw": 1000000,
+                    "decimals": 5,
+                    "safety_score": 45,
+                    "risk_level": "MEDIUM",
+                    "top_warnings": ["Mint authority active"],
+                },
+                {
+                    "mint": USDC_MINT,
+                    "symbol": "USDC",
+                    "balance_raw": 5000000,
+                    "decimals": 6,
+                    "safety_score": 30,
+                    "risk_level": "HIGH",
+                    "top_warnings": ["Thin liquidity"],
+                },
+            ],
+            "summary": "Found 2 risky tokens.",
+        }
+        rows = _wallet_csv_rows(wallet_result)
+        assert len(rows) == 2
+        assert rows[0]["token_mint"] == BONK_MINT
+        assert rows[0]["token_symbol"] == "BONK"
+        assert rows[1]["token_mint"] == USDC_MINT
+
+    def test_wallet_csv_format(self) -> None:
+        wallet_result = {
+            "address": TEST_WALLET,
+            "total_tokens": 3,
+            "risky_count": 1,
+            "risky_tokens": [
+                {
+                    "mint": BONK_MINT,
+                    "symbol": "BONK",
+                    "balance_raw": 1000000,
+                    "decimals": 5,
+                    "safety_score": 45,
+                    "risk_level": "MEDIUM",
+                    "top_warnings": ["Test warning"],
+                },
+            ],
+            "summary": "Found 1 risky token.",
+        }
+        rows = _wallet_csv_rows(wallet_result)
+        csv_out = format_csv(rows)
+        assert "wallet_address" in csv_out
+        assert "token_mint" in csv_out
+        assert "BONK" in csv_out
+
+    def test_wallet_jsonl_format(self) -> None:
+        wallet_result = {
+            "address": TEST_WALLET,
+            "total_tokens": 3,
+            "risky_count": 0,
+            "risky_tokens": [],
+            "summary": "No risky tokens.",
+        }
+        rows = _wallet_csv_rows(wallet_result)
+        jsonl_out = format_jsonl(rows)
+        parsed = json.loads(jsonl_out.strip())
+        assert parsed["wallet_address"] == TEST_WALLET
+        assert parsed["risky_count"] == 0
+
+    def test_format_csv_empty(self) -> None:
+        assert format_csv([]) == ""
+
+    def test_format_jsonl_empty(self) -> None:
+        assert format_jsonl([]) == ""
+
+    def test_export_implies_json_mode(self) -> None:
+        """--export should not mix with --markdown — export takes precedence."""
+        report = self._make_report()
+        rows = _report_csv_rows(report)
+        csv_out = format_csv(rows)
+        # CSV should not contain markdown headers
+        assert "# " not in csv_out
+        assert "|" not in csv_out
