@@ -9,8 +9,8 @@ Usage:
     python solana-rug.py timeline <MINT_ADDRESS>
     python solana-rug.py watch <MINT_ADDRESS> [options]
 """
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

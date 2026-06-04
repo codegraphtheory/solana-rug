@@ -65,5 +65,5 @@ jobs:
           body: ${{ steps.changelog.outputs.changelog }}
           files: |
             dist/*
-            scripts/rugguard.py
+            scripts/solana-rug.py
           generate_release_notes: false
