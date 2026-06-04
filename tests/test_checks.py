@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 # Add scripts to path
 _scripts = str(Path(__file__).resolve().parent.parent / "scripts")
@@ -26,6 +27,7 @@ from rugguard import (  # noqa: E402
     TokenMeta,
     check_authorities,
     compute_safety_score,
+    compute_score_components,
     describe_watch_change,
     ensure_history_db,
     estimate_token_age,
@@ -117,6 +119,54 @@ class TestTokenHolders:
             assert holders.top_10_pct > 0
             assert len(holders.top_holders) > 0
 
+    def test_holder_fallback_gpa(self) -> None:
+        """Fallback to getProgramAccounts when getTokenLargestAccounts fails."""
+        import rugguard
+
+        original_rpc = rugguard._rpc_call
+
+        def mock_rpc_call(method, params, *args, **kwargs):
+            if method == "getTokenLargestAccounts":
+                return None
+            elif method == "getProgramAccounts":
+                return [
+                    {
+                        "account": {
+                            "data": {
+                                "parsed": {
+                                    "info": {
+                                        "mint": "dummy_mint",
+                                        "tokenAmount": {"amount": "6000"},
+                                        "owner": "wallet1",
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "account": {
+                            "data": {
+                                "parsed": {
+                                    "info": {
+                                        "mint": "dummy_mint",
+                                        "tokenAmount": {"amount": "4000"},
+                                        "owner": "wallet2",
+                                    }
+                                }
+                            }
+                        }
+                    },
+                ]
+            return original_rpc(method, params, *args, **kwargs)
+
+        with patch("rugguard._rpc_call", side_effect=mock_rpc_call):
+            with patch("rugguard._dex_screener_fetch", return_value=None):
+                holders = rugguard.fetch_token_holders("dummy_mint", 6)
+                assert holders is not None
+                assert holders.total_holders == 2
+                assert holders.dev_wallet_pct == 60.0
+                assert holders.top_10_pct == 100.0
+
 
 # ── Token Age Tests ───────────────────────────────────────────────────────
 
@@ -181,6 +231,23 @@ class TestScoring:
             )
             safety, level, rec = compute_safety_score(flags, score, [])
             assert 0 <= safety <= 100
+
+    def test_dexscreener_zero_liquidity_penalty(self) -> None:
+        """Zero liquidity from DexScreener should result in max low-liquidity penalty."""
+        flags = RugFlags()
+        token = TokenMeta(address="test", decimals=6)
+        dex_data = {"liquidity_usd": 0, "volume_24h": 0}
+        score, warnings = compute_score_components(flags, token, None, None, None, None, dex_data=dex_data)
+        assert score.low_liquidity_risk == 5
+        assert any("zero liquidity" in w.lower() for w in warnings)
+
+    def test_dexscreener_low_volume_ratio_penalty(self) -> None:
+        """Very low volume-to-liquidity ratio flags an inactive pool."""
+        flags = RugFlags()
+        token = TokenMeta(address="test", decimals=6)
+        dex_data = {"liquidity_usd": 10000, "volume_24h": 100}
+        score, warnings = compute_score_components(flags, token, None, None, None, None, dex_data=dex_data)
+        assert any("Low volume/liquidity ratio" in w for w in warnings)
 
 
 # ── Output Formatting Tests ───────────────────────────────────────────────

@@ -165,6 +165,7 @@ Webhook payloads use the same JSON event shape and are sent only when a change/t
 | `SOLANA_RUG_LIQ_THRESHOLD_MEDIUM` | `20000` | Liquidity below this is scored as medium risk (3pts). |
 | `SOLANA_RUG_LIQ_THRESHOLD_LOW` | `100000` | Liquidity below this is scored as low risk (1pt). |
 | `SOLANA_RUG_LIQ_VOL_RATIO_WARNING` | `15` | Volume/liquidity ratio above this triggers a wash-trading warning (+3pts). |
+| `SOLANA_RUG_LIQ_VOL_RATIO_MIN` | `0.05` | Volume/liquidity ratio below this flags an inactive/dead pool (+3pts). |
 
 ---
 

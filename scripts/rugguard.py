@@ -267,6 +267,7 @@ LIQ_THRESHOLD_HIGH = int(os.environ.get("SOLANA_RUG_LIQ_THRESHOLD_HIGH", "5000")
 LIQ_THRESHOLD_MEDIUM = int(os.environ.get("SOLANA_RUG_LIQ_THRESHOLD_MEDIUM", "20000"))
 LIQ_THRESHOLD_LOW = int(os.environ.get("SOLANA_RUG_LIQ_THRESHOLD_LOW", "100000"))
 LIQ_VOL_RATIO_WARNING = float(os.environ.get("SOLANA_RUG_LIQ_VOL_RATIO_WARNING", "15"))
+LIQ_VOL_RATIO_MIN = float(os.environ.get("SOLANA_RUG_LIQ_VOL_RATIO_MIN", "0.05"))
 
 # Known DEX program IDs for LP detection
 KNOWN_DEX_PROGRAMS = {
@@ -821,7 +822,6 @@ def check_sniper_patterns(mint: str, dex_data: dict | None = None) -> bool:
     # For Pump.fun / AMM tokens, check the pair address instead of the mint
     target = mint
     if dex_data and dex_data.get("pair_address"):
-        dex_name = (dex_data.get("dex", "") or "").lower()
         # pumpSwap, raydium, meteora pools have buy activity on the pair address
         target = dex_data["pair_address"]
 
@@ -1004,6 +1004,13 @@ def compute_score_components(
                 warnings.append(
                     f"High volume/liquidity ratio ({ratio:.1f}x) — "
                     f"${vol:,.0f} volume on ${liq:,.0f} liquidity — possible wash trading"
+                )
+            # Low ratio suggests a dead/inactive pool with no trading activity
+            if ratio < LIQ_VOL_RATIO_MIN:
+                score.low_liquidity_risk = max(score.low_liquidity_risk, 3)
+                warnings.append(
+                    f"Low volume/liquidity ratio ({ratio:.3f}x) — "
+                    f"${vol:,.0f} volume on ${liq:,.0f} liquidity — pool may be inactive"
                 )
 
     # 4. Holder concentration (15 pts)
