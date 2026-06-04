@@ -24,11 +24,15 @@ from rugguard import (  # noqa: E402
     TokenMeta,
     check_authorities,
     compute_safety_score,
+    describe_watch_change,
+    ensure_history_db,
     estimate_token_age,
     fetch_token_holders,
     fetch_token_meta,
     format_json,
     format_markdown,
+    load_last_history,
+    record_history,
     rug_check_token,
 )
 
@@ -223,7 +227,46 @@ class TestOutput:
         assert "Avoid." in md
 
 
-# ── Full Analysis Integration Test ────────────────────────────────────────
+
+# ── Watch / History Tests ──────────────────────────────────────────────────
+
+class TestWatchHistory:
+    def test_history_roundtrip_and_change_detection(self, tmp_path) -> None:
+        db_path = tmp_path / "history.sqlite3"
+        report = RugReport(
+            token=TokenMeta(address=BONK_MINT, symbol="BONK"),
+            safety_score=85,
+            risk_level="LOW",
+            warnings=["baseline warning"],
+        )
+
+        ensure_history_db(str(db_path))
+        previous = load_last_history(BONK_MINT, str(db_path))
+        changed, reasons = describe_watch_change(previous, report)
+        assert changed
+        assert "first observation" in reasons
+
+        record_history(report, str(db_path))
+        previous = load_last_history(BONK_MINT, str(db_path))
+        assert previous is not None
+        assert previous["safety_score"] == 85
+
+        changed, reasons = describe_watch_change(previous, report)
+        assert not changed
+        assert reasons == []
+
+        lower_score = RugReport(
+            token=TokenMeta(address=BONK_MINT, symbol="BONK"),
+            safety_score=65,
+            risk_level="MEDIUM",
+            warnings=["baseline warning", "new warning"],
+        )
+        changed, reasons = describe_watch_change(previous, lower_score, threshold=70)
+        assert changed
+        assert any("score changed" in r for r in reasons)
+        assert any("risk level changed" in r for r in reasons)
+        assert any("threshold" in r for r in reasons)
+
 
 class TestFullAnalysis:
     @pytest.mark.slow

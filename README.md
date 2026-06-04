@@ -123,11 +123,42 @@ python3 rugguard.py wallet <ADDRESS>
 
 Scans all SPL tokens held by a wallet. For each token with meaningful balance, checks mint authority. Returns a prioritized list of risky tokens ordered by safety score (lowest first).
 
+### Watch Mode, History, and Webhooks
+
+```bash
+# One check, store a SQLite history row, then exit
+python3 rugguard.py watch <MINT_ADDRESS> --iterations 1
+
+# Continuous monitoring every 60 seconds
+python3 rugguard.py watch <MINT_ADDRESS> --interval 60
+
+# Alert whenever score/flags/warnings change, or whenever safety <= 70
+python3 rugguard.py watch <MINT_ADDRESS> --threshold 70 --webhook https://example.com/webhook
+```
+
+Watch mode stores every run in a local SQLite database and prints one JSON event per check:
+
+```json
+{
+  "mint": "...",
+  "safety_score": 79,
+  "risk_level": "LOW",
+  "changed": true,
+  "reasons": ["score changed 82 -> 79"],
+  "history_db": "~/.solana-rug/history.sqlite3"
+}
+```
+
+Webhook payloads use the same JSON event shape and are sent only when a change/threshold alert fires.
+
 ### Environment
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SOLANA_RPC_URL` | `https://api.mainnet-beta.solana.com` | Override RPC endpoint. Set to a private node (Helius, QuickNode) for production reliability. |
+| `SOLANA_RUG_HISTORY_DB` | `~/.solana-rug/history.sqlite3` | SQLite path for watch-mode score history. |
+| `SOLANA_RUG_WEBHOOK_URL` | empty | Optional webhook URL for watch-mode alerts. |
+| `SOLANA_RUG_WATCH_INTERVAL` | `60` | Default watch interval in seconds. |
 
 ---
 
