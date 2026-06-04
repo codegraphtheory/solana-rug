@@ -63,5 +63,7 @@ jobs:
         with:
           name: solana-rug ${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.changelog }}
-          files: dist/*
+          files: |
+            dist/*
+            scripts/rugguard.py
           generate_release_notes: false
