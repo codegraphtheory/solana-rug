@@ -1,0 +1,67 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0a0a0f"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(245,159,0,0.08)"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59f00"/>
+      <stop offset="100%" stop-color="#fcc419"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#14141c"/>
+      <stop offset="100%" stop-color="#0d0d14"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="600" cy="315" r="400" fill="url(#glow)"/>
+
+  <!-- Border accent line -->
+  <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
+
+  <!-- Shield icon -->
+  <g transform="translate(80, 160)">
+    <path d="M60 0 L120 30 L120 100 C120 160 60 190 60 190 C60 190 0 160 0 100 L0 30 Z" fill="none" stroke="url(#accent)" stroke-width="3"/>
+    <path d="M60 20 L108 43 L108 95 C108 145 60 170 60 170 C60 170 12 145 12 95 L12 43 Z" fill="rgba(245,159,0,0.1)"/>
+    <path d="M45 95 L55 105 L75 80" fill="none" stroke="#f59f00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Main content -->
+  <text x="160" y="125" font-family="'Inter', system-ui, sans-serif" font-size="56" font-weight="800" fill="#ffffff">Rugpull <tspan fill="#f59f00">$RUG</tspan></text>
+
+  <text x="160" y="175" font-family="'Inter', system-ui, sans-serif" font-size="22" font-weight="500" fill="#a0a0b0">13-Factor On-Chain Rug-Pull Detection for Solana</text>
+
+  <!-- Feature cards -->
+  <g transform="translate(80, 220)">
+    <rect x="0" y="0" width="320" height="90" rx="10" fill="url(#card)" stroke="#1a1a2e" stroke-width="1"/>
+    <text x="20" y="30" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="700" fill="#f59f00">13 RISK CHECKS</text>
+    <text x="20" y="55" font-family="'Inter', system-ui, sans-serif" font-size="14" font-weight="500" fill="#e4e4e7">Mint, Freeze, LP, Holders,</text>
+    <text x="20" y="75" font-family="'Inter', system-ui, sans-serif" font-size="14" font-weight="500" fill="#e4e4e7">Snipers, Name, Dump Risk</text>
+  </g>
+
+  <g transform="translate(420, 220)">
+    <rect x="0" y="0" width="320" height="90" rx="10" fill="url(#card)" stroke="#1a1a2e" stroke-width="1"/>
+    <text x="20" y="30" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="700" fill="#f59f00">OPEN SOURCE</text>
+    <text x="20" y="55" font-family="'Inter', system-ui, sans-serif" font-size="14" font-weight="500" fill="#e4e4e7">MIT Licensed</text>
+    <text x="20" y="75" font-family="'Inter', system-ui, sans-serif" font-size="14" font-weight="500" fill="#e4e4e7">Zero Paid APIs</text>
+  </g>
+
+  <g transform="translate(760, 220)">
+    <rect x="0" y="0" width="320" height="90" rx="10" fill="url(#card)" stroke="#1a1a2e" stroke-width="1"/>
+    <text x="20" y="30" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="700" fill="#f59f00">AUDITABLE</text>
+    <text x="20" y="55" font-family="'Inter', system-ui, sans-serif" font-size="14" font-weight="500" fill="#e4e4e7">Single Python File</text>
+    <text x="20" y="75" font-family="'Inter', system-ui, sans-serif" font-size="14" font-weight="500" fill="#e4e4e7">Deterministic Scoring</text>
+  </g>
+
+  <!-- Bottom bar -->
+  <rect x="0" y="590" width="1200" height="40" fill="#0a0a0f" opacity="0.5"/>
+  <text x="80" y="614" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#5c5c72">rug-pull.net</text>
+  <text x="520" y="614" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#5c5c72">github.com/rugpullnet/solana-rug</text>
+  <text x="1000" y="614" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#5c5c72">Open Source · MIT</text>
+</svg>
