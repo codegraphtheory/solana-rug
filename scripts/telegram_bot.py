@@ -13,7 +13,6 @@ Dependencies (optional):
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import sqlite3
@@ -149,7 +148,7 @@ def _format_report(mint: str) -> str:
     symbol = report.token.symbol or report.token.name or f"{mint[:4]}...{mint[-4:]}"
     lines = [
         f"*🛡️ {symbol} Safety Report*",
-        f"",
+        "",
         f"**Score:** {report.safety_score}/100 — **{report.risk_level}**",
         f"**Mint:** `{mint}`",
         "",
