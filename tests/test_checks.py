@@ -450,4 +450,73 @@ def test_wallet_scan() -> None:
     assert "address" in result
     assert result["address"] == TEST_WALLET
     assert "total_tokens" in result
-    assert isinstance(result["total_tokens"], int)
+    assert isinstance(result['total_tokens'], int)
+
+
+# ── Badge Tests ───────────────────────────────────────────────────────────
+
+class TestBadge:
+    def test_badge_green_low(self):
+        from rugguard import _svg_badge, RugScore, RugFlags, TokenMeta
+        flags = RugFlags()
+        r = RugReport(
+            token=TokenMeta(address='A'), safety_score=95, risk_level='LOW',
+            score=RugScore(), flags=flags, warnings=[], recommendation='',
+        )
+        svg = _svg_badge(r)
+        assert '#4c1' in svg  # green
+        assert '95/100' in svg
+        assert 'LOW' in svg
+
+    def test_badge_yellow_medium(self):
+        from rugguard import _svg_badge, RugScore, RugFlags, TokenMeta
+        flags = RugFlags()
+        r = RugReport(
+            token=TokenMeta(address='A'), safety_score=55, risk_level='MEDIUM',
+            score=RugScore(), flags=flags, warnings=[], recommendation='',
+        )
+        svg = _svg_badge(r)
+        assert '#e67e22' in svg  # yellow
+        assert '55/100' in svg
+
+    def test_badge_red_high(self):
+        from rugguard import _svg_badge, RugScore, RugFlags, TokenMeta
+        flags = RugFlags()
+        r = RugReport(
+            token=TokenMeta(address='A'), safety_score=25, risk_level='HIGH',
+            score=RugScore(), flags=flags, warnings=[], recommendation='',
+        )
+        svg = _svg_badge(r)
+        assert '#e74c3c' in svg  # red
+
+    def test_badge_darkred_critical(self):
+        from rugguard import _svg_badge, RugScore, RugFlags, TokenMeta
+        flags = RugFlags()
+        r = RugReport(
+            token=TokenMeta(address='A'), safety_score=10, risk_level='CRITICAL',
+            score=RugScore(), flags=flags, warnings=[], recommendation='',
+        )
+        svg = _svg_badge(r)
+        assert '#c0392b' in svg  # dark red
+
+    def test_badge_custom_label(self):
+        from rugguard import _svg_badge, RugScore, RugFlags, TokenMeta
+        flags = RugFlags()
+        r = RugReport(
+            token=TokenMeta(address='A'), safety_score=80, risk_level='LOW',
+            score=RugScore(), flags=flags, warnings=[], recommendation='',
+        )
+        svg = _svg_badge(r, label='rugcheck')
+        assert 'rugcheck' in svg
+
+    def test_badge_is_valid_svg(self):
+        from rugguard import _svg_badge, RugScore, RugFlags, TokenMeta
+        flags = RugFlags()
+        r = RugReport(
+            token=TokenMeta(address='A'), safety_score=80, risk_level='LOW',
+            score=RugScore(), flags=flags, warnings=[], recommendation='',
+        )
+        svg = _svg_badge(r)
+        assert svg.startswith('<svg')
+        assert svg.endswith('</svg>')
+        assert 'xmlns=' in svg
