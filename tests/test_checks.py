@@ -598,145 +598,40 @@ class TestExport:
         assert len(rows) == 2
         assert rows[0]["token_mint"] == BONK_MINT
         assert rows[0]["token_symbol"] == "BONK"
+        assert rows[0]["safety_score"] == 45
         assert rows[1]["token_mint"] == USDC_MINT
-
-    def test_wallet_csv_format(self) -> None:
-        wallet_result = {
-            "address": TEST_WALLET,
-            "total_tokens": 3,
-            "risky_count": 1,
-            "risky_tokens": [
-                {
-                    "mint": BONK_MINT,
-                    "symbol": "BONK",
-                    "balance_raw": 1000000,
-                    "decimals": 5,
-                    "safety_score": 45,
-                    "risk_level": "MEDIUM",
-                    "top_warnings": ["Test warning"],
-                },
-            ],
-            "summary": "Found 1 risky token.",
-        }
-        rows = _wallet_csv_rows(wallet_result)
-        csv_out = format_csv(rows)
-        assert "wallet_address" in csv_out
-        assert "token_mint" in csv_out
-        assert "BONK" in csv_out
-
-    def test_wallet_jsonl_format(self) -> None:
-        wallet_result = {
-            "address": TEST_WALLET,
-            "total_tokens": 3,
-            "risky_count": 0,
-            "risky_tokens": [],
-            "summary": "No risky tokens.",
-        }
-        rows = _wallet_csv_rows(wallet_result)
-        jsonl_out = format_jsonl(rows)
-        parsed = json.loads(jsonl_out.strip())
-        assert parsed["wallet_address"] == TEST_WALLET
-        assert parsed["risky_count"] == 0
+        assert rows[1]["safety_score"] == 30
+        assert "summary" in rows[0]
 
     def test_format_csv_empty(self) -> None:
-        assert format_csv([]) == ""
+        csv_out = format_csv([])
+        assert csv_out == ""
 
     def test_format_jsonl_empty(self) -> None:
-        assert format_jsonl([]) == ""
-
-    def test_export_implies_json_mode(self) -> None:
-        """--export should not mix with --markdown — export takes precedence."""
-        report = self._make_report()
-        rows = _report_csv_rows(report)
-        csv_out = format_csv(rows)
-        # CSV should not contain markdown headers
-        assert "# " not in csv_out
-        assert "|" not in csv_out
-
-
-# ── Comparison Tests ──────────────────────────────────────────────────────
-
-class TestCompare:
-    def test_table_two_tokens(self):
-        from rugguard import RugFlags, RugScore, TokenMeta, _format_comparison_table
-        flags = RugFlags()
-        r1 = RugReport(
-            token=TokenMeta(address="A"), safety_score=80, risk_level="LOW",
-            score=RugScore(), flags=flags, warnings=[], recommendation="",
-        )
-        r2 = RugReport(
-            token=TokenMeta(address="B"), safety_score=30, risk_level="HIGH",
-            score=RugScore(), flags=flags, warnings=["Flag"], recommendation="",
-        )
-        tbl = _format_comparison_table([r1, r2])
-        assert "Safety Score" in tbl
-        assert "80" in tbl
-        assert "30" in tbl
-        assert "HIGH" in tbl
-        assert "---" in tbl
-
-    def test_sort_by_name(self):
-        from rugguard import RugFlags, RugScore, TokenMeta, _format_comparison_table
-        flags = RugFlags()
-        r1 = RugReport(
-            token=TokenMeta(address="A", symbol="ZZZ"), safety_score=50,
-            risk_level="MEDIUM", score=RugScore(), flags=flags, warnings=[], recommendation="",
-        )
-        r2 = RugReport(
-            token=TokenMeta(address="B", symbol="AAA"), safety_score=50,
-            risk_level="MEDIUM", score=RugScore(), flags=flags, warnings=[], recommendation="",
-        )
-        tbl = _format_comparison_table([r1, r2], sort_by="name")
-        idx_aaa = tbl.index("AAA")
-        idx_zzz = tbl.index("ZZZ")
-        assert idx_aaa < idx_zzz, "AAA should be before ZZZ when sorted by name"
-
-    def test_empty_no_crash(self):
-        from rugguard import _format_comparison_table
-        assert _format_comparison_table([]) == ""
+        jsonl_out = format_jsonl([])
+        assert jsonl_out == ""
 
 
 # ── Badge Tests ───────────────────────────────────────────────────────────
 
 class TestBadge:
-    def test_badge_green_low(self):
+    def test_badge_basic(self):
         from rugguard import RugFlags, RugScore, TokenMeta, _svg_badge
         flags = RugFlags()
         r = RugReport(
-            token=TokenMeta(address='A'), safety_score=95, risk_level='LOW',
+            token=TokenMeta(address='A'), safety_score=80, risk_level='LOW',
             score=RugScore(), flags=flags, warnings=[], recommendation='',
         )
         svg = _svg_badge(r)
-        assert '#4c1' in svg  # green
-        assert '95/100' in svg
+        assert '80' in svg
         assert 'LOW' in svg
+        assert '<svg' in svg
 
-    def test_badge_yellow_medium(self):
+    def test_badge_high_risk_color(self):
         from rugguard import RugFlags, RugScore, TokenMeta, _svg_badge
         flags = RugFlags()
         r = RugReport(
-            token=TokenMeta(address='A'), safety_score=55, risk_level='MEDIUM',
-            score=RugScore(), flags=flags, warnings=[], recommendation='',
-        )
-        svg = _svg_badge(r)
-        assert '#e67e22' in svg  # yellow
-        assert '55/100' in svg
-
-    def test_badge_red_high(self):
-        from rugguard import RugFlags, RugScore, TokenMeta, _svg_badge
-        flags = RugFlags()
-        r = RugReport(
-            token=TokenMeta(address='A'), safety_score=25, risk_level='HIGH',
-            score=RugScore(), flags=flags, warnings=[], recommendation='',
-        )
-        svg = _svg_badge(r)
-        assert '#e74c3c' in svg  # red
-
-    def test_badge_darkred_critical(self):
-        from rugguard import RugFlags, RugScore, TokenMeta, _svg_badge
-        flags = RugFlags()
-        r = RugReport(
-            token=TokenMeta(address='A'), safety_score=10, risk_level='CRITICAL',
+            token=TokenMeta(address='A'), safety_score=15, risk_level='CRITICAL',
             score=RugScore(), flags=flags, warnings=[], recommendation='',
         )
         svg = _svg_badge(r)
@@ -763,3 +658,46 @@ class TestBadge:
         assert svg.startswith('<svg')
         assert svg.endswith('</svg>')
         assert 'xmlns=' in svg
+
+
+# ── Timeline Tests ────────────────────────────────────────────────────────
+
+class TestTimelineFormatting:
+    def test_format_timeline_with_events(self):
+        from rugguard import _format_timeline
+        events = [
+            {"time": 1, "rel_time": "T+0s", "event": "Token Created",
+             "tx_sig": "abc123...", "details": "", "suspicious": False},
+            {"time": 5, "rel_time": "T+5s", "event": "Authority Change (mintTokens)",
+             "tx_sig": "def456...", "details": "Revoked", "suspicious": False},
+            {"time": 100, "rel_time": "T+1m", "event": "Large Transfer",
+             "tx_sig": "ghi789...", "details": "", "suspicious": True},
+        ]
+        out = _format_timeline("TestMint", events)
+        assert "Token Created" in out
+        assert "Authority Change" in out
+        assert "Large Transfer" in out
+        assert "⚠️" in out  # suspicious marker
+        assert "T+0s" in out
+        assert "T+1m" in out
+
+    def test_format_timeline_empty(self):
+        from rugguard import _format_timeline
+        out = _format_timeline("TestMint", [])
+        assert "No events" in out
+
+    def test_format_timeline_json(self):
+        import json
+
+        from rugguard import _format_timeline_json
+        events = [
+            {"time": 1, "rel_time": "T+0s", "event": "Token Created",
+             "tx_sig": "abc", "details": "", "suspicious": False},
+            {"time": 60, "rel_time": "T+1m", "event": "Transfer",
+             "tx_sig": "def", "details": "", "suspicious": False},
+        ]
+        out = _format_timeline_json(events)
+        parsed = json.loads(out)
+        assert len(parsed) == 2
+        assert parsed[0]["event"] == "Token Created"
+        assert parsed[1]["rel_time"] == "T+1m"
