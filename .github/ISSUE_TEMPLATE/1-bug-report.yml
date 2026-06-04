@@ -1,0 +1,135 @@
+---
+name: Bug Report
+description: Report a bug in Solana Rug Guard — scoring errors, crashes, false positives/negatives, or docs inconsistencies.
+title: "[Bug] "
+labels: ["bug"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to make Solana Rug Guard better. Every quality report strengthens trust in the tool.
+
+        **Before submitting:**
+        - Run against the latest version: `pip install --upgrade solana-rug` or pull from `main`
+        - Search existing [open and closed issues](https://github.com/rugpullnet/solana-rug/issues?q=is%3Aissue) to avoid duplicates
+        - Verify the bug reproduces on at least 2 different RPC endpoints
+
+  - type: checkboxes
+    id: prerequisite-checks
+    attributes:
+      label: Pre-submission Checks
+      options:
+        - label: I verified this bug on the latest version of the tool
+          required: true
+        - label: I searched for existing issues and found no duplicate
+          required: true
+        - label: I confirmed the bug reproduces on more than one RPC endpoint
+          required: false
+        - label: I am not including any real names, personal emails, or identifying information
+          required: true
+
+  - type: input
+    id: tool-version
+    attributes:
+      label: Tool Version
+      description: "Output of `pip show solana-rug` or the git commit SHA from `git log --oneline -1`"
+      placeholder: "0.1.1 or abc1234"
+    validations:
+      required: true
+
+  - type: input
+    id: token-address
+    attributes:
+      label: Token Address
+      description: "The Solana mint address the bug affects (or N/A)"
+      placeholder: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: "What's happening and what should happen instead?"
+      placeholder: |
+        The scoring engine returns X when it should return Y.
+
+        Expected behavior:
+        - Determined by the docs/RUG_FORENSICS.md
+        - Or by comparison with a known-safe/broken token
+
+        Actual behavior:
+        - Observed output
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps
+      description: "Exact commands and full output. Paste the complete terminal session."
+      placeholder: |
+        curl -OL https://github.com/rugpullnet/solana-rug/releases/latest/download/rugguard.py
+        python3 rugguard.py token <MINT> --json
+
+        # Or using pip:
+        pip install solana-rug
+        solana-rug token <MINT> --json
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: "Full output, error tracebacks, or screenshots. If the output is long, paste it in a code block."
+      placeholder: |
+        ```json
+        {
+          "safety_score": 42,
+          ...
+        }
+        ```
+    validations:
+      required: true
+
+  - type: dropdown
+    id: bug-type
+    attributes:
+      label: Bug Category
+      description: "What kind of bug is this?"
+      options:
+        - Scoring / false positive / false negative
+        - Crash / error
+        - Documentation inconsistency
+        - CLI / install issue
+        - Data accuracy (wrong holder count, wrong LP data, etc.)
+        - Performance
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: "Python version, OS, RPC endpoint used"
+      placeholder: |
+        - Python: 3.11
+        - OS: macOS 14.5 / Ubuntu 22.04
+        - RPC: https://api.mainnet-beta.solana.com (or private endpoint)
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Suggested Acceptance Criteria
+      description: "How would you verify this bug is fixed? Be specific."
+      placeholder: |
+        1. Run `solana-rug token <MINT> --json`
+        2. Verify the `safety_score` field returns XX instead of YY
+        3. Verify the fix doesn't change the score for known-safe tokens (BONK, USDC)
+    validations:
+      required: false

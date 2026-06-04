@@ -1,0 +1,120 @@
+---
+name: Feature / Bounty Request
+description: Propose a new feature, scoring improvement, or detection heuristic. Bounty-eligible items carry $RUG token rewards.
+title: "[Feature] "
+labels: ["enhancement"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing to Solana Rug Guard! Feature requests that are well-specified with clear acceptance criteria are prioritized over vague ideas.
+
+        **Before submitting:**
+        - Search existing [open and closed issues](https://github.com/rugpullnet/solana-rug/issues?q=is%3Aissue) to avoid duplicates
+        - Review the [existing scoring architecture](https://github.com/rugpullnet/solana-rug/blob/main/docs/ARCHITECTURE.md) to understand how checks fit together
+        - Keep it to **one feature per issue** — bundled feature requests will be asked to split
+
+  - type: checkboxes
+    id: prerequisite-checks
+    attributes:
+      label: Pre-submission Checks
+      options:
+        - label: I searched for existing issues and found no duplicate
+          required: true
+        - label: This issue covers exactly one feature or detection improvement
+          required: true
+        - label: I am not including any real names, personal emails, or identifying information
+          required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: "What should the tool do after this feature is implemented? One clear sentence."
+      placeholder: "Detect when a token's mint authority is transferred to a new address and flag it as a risk event."
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: "Why does this matter? What real-world risk or gap does it address? Reference specific on-chain behavior if applicable."
+      placeholder: |
+        Current tools detect whether mint authority exists, but don't track transfers. A dev transferring mint authority to a new wallet before a sale is a known rug pattern. Detecting this would catch a class of scams current heuristics miss.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: "Exactly how will we know this feature is complete? Be specific and testable. Number each criterion."
+      placeholder: |
+        1. Run `solana-rug token <MINT> --json` on a token with transferred mint authority
+        2. Output includes `mint_authority_transferred: true` and the new authority address
+        3. Score deduction is applied (e.g., +5 risk points) when a transfer is detected
+        4. No false positive for tokens with original mint authority still revoked
+        5. Test covers both SPL Token and Token-2022 program IDs
+    validations:
+      required: true
+
+  - type: dropdown
+    id: bounty-eligible
+    attributes:
+      label: Bounty Eligibility
+      description: "Is this feature eligible for a $RUG bounty? Bounties are awarded at maintainer discretion for high-impact contributions."
+      options:
+        - "Yes, I'm interested in claiming a bounty for this"
+        - "No, this is a free contribution"
+        - "I'm not sure — let the maintainers decide"
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-notes
+    attributes:
+      label: Implementation Notes
+      description: "Optional: any thoughts on approach, data sources, or existing APIs to use. Not required but speeds up review."
+      placeholder: |
+        - Could use `getProgramAccounts` with a specific filter on the Mint Authority key
+        - Need to compare current authority against historical authority from DexScreener or a local cache
+        - Risk weight: ~5 points, configurable via env var
+    validations:
+      required: false
+
+  - type: textarea
+    id: test-plan
+    attributes:
+      label: Test Plan
+      description: "How would you test this? What tokens or scenarios would you use?"
+      placeholder: |
+        - Test with a known-safe token (BONK) — should show no transfer
+        - Test with a test token where authority was transferred — should detect it
+        - Test with Token-2022 variant
+        - Edge case: zero-address authority (revoked) — should not flag
+    validations:
+      required: false
+
+  - type: textarea
+    id: docs-impact
+    attributes:
+      label: Documentation Impact
+      description: "What docs would need updating?"
+      placeholder: |
+        - Update score breakdown table in docs/SCORING.md
+        - Add new env var to README environment table
+        - Mention in RUG_FORENSICS.md if relevant
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: scope-check
+    attributes:
+      label: Scope Discipline
+      options:
+        - label: This feature does not require changes to unrelated subsystems (e.g., a scoring change doesn't touch CLI parsing)
+          required: false
+        - label: I understand that PRs implementing this feature should address only this issue
+          required: true
