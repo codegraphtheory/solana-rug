@@ -257,6 +257,10 @@ class RugReport:
 LAMPORTS_PER_SOL = 1_000_000_000
 NULL_ADDRESS = "11111111111111111111111111111111"
 
+# Token program IDs
+SPL_TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+TOKEN_2022_PROGRAM = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+
 # Known DEX program IDs for LP detection
 KNOWN_DEX_PROGRAMS = {
     "Raydium": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
@@ -433,6 +437,49 @@ def fetch_token_holders(mint: str, decimals: int) -> HolderInfo | None:
                 )
                 _set_cache(cache_key, asdict(info))
                 return info
+
+    # getTokenLargestAccounts failed — try getProgramAccounts (for Token-2022)
+    # Filter by mint using memcmp on the account data at offset 0
+    gpa = _rpc_call("getProgramAccounts", [
+        TOKEN_2022_PROGRAM,
+        {
+            "encoding": "jsonParsed",
+            "filters": [
+                {"memcmp": {"offset": 0, "bytes": mint}},
+                {"dataSize": 165},  # Token-2022 account size
+            ],
+        },
+    ], retries=0, pin_rpc=False)
+    if gpa and isinstance(gpa, list) and len(gpa) > 0:
+        accounts = []
+        for item in gpa:
+            acct = item.get("account", {})
+            data = acct.get("data", {})
+            parsed = data.get("parsed", {}) if isinstance(data, dict) else {}
+            info = parsed.get("info", {})
+            if info.get("mint") == mint:
+                amt = int(info.get("tokenAmount", {}).get("amount", "0"))
+                owner = info.get("owner", "")
+                if amt > 0:
+                    accounts.append({"address": owner, "amount": amt})
+        if accounts:
+            total_supply = sum(a["amount"] for a in accounts)
+            accounts.sort(key=lambda a: a["amount"], reverse=True)
+            top_holders = []
+            pct_sum = 0.0
+            for a in accounts[:20]:
+                pct = round(a["amount"] / total_supply * 100, 2) if total_supply > 0 else 0
+                pct_sum += pct
+                top_holders.append({"address": a["address"], "amount": a["amount"], "pct": pct})
+            dev_pct = top_holders[0]["pct"] if top_holders else 0.0
+            info = HolderInfo(
+                total_holders=len(accounts),
+                top_10_pct=min(pct_sum, 100.0),
+                dev_wallet_pct=dev_pct,
+                top_holders=top_holders[:10],
+            )
+            _set_cache(cache_key, asdict(info))
+            return info
 
     # RPC failed (common for Token-2022 on public RPC) — try DexScreener
     dex_data = _dex_screener_fetch(mint)
