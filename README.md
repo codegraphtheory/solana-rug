@@ -160,6 +160,11 @@ Webhook payloads use the same JSON event shape and are sent only when a change/t
 | `SOLANA_RUG_WEBHOOK_URL` | empty | Optional webhook URL for watch-mode alerts. |
 | `SOLANA_RUG_WATCH_INTERVAL` | `60` | Default watch interval in seconds. |
 | `SOLANA_RUG_HISTORY_RETENTION_DAYS` | `90` | Auto-prune history entries older than this many days. |
+| `SOLANA_RUG_LIQ_THRESHOLD_CRITICAL` | `1000` | Liquidity below this USD amount is scored as critical risk (5pts). |
+| `SOLANA_RUG_LIQ_THRESHOLD_HIGH` | `5000` | Liquidity below this is scored as high risk (4pts). |
+| `SOLANA_RUG_LIQ_THRESHOLD_MEDIUM` | `20000` | Liquidity below this is scored as medium risk (3pts). |
+| `SOLANA_RUG_LIQ_THRESHOLD_LOW` | `100000` | Liquidity below this is scored as low risk (1pt). |
+| `SOLANA_RUG_LIQ_VOL_RATIO_WARNING` | `15` | Volume/liquidity ratio above this triggers a wash-trading warning (+3pts). |
 
 ---
 
