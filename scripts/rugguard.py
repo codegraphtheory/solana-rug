@@ -1627,22 +1627,116 @@ def format_markdown(report: RugReport) -> str:
 def format_json(report: RugReport) -> str:
     """Format report as pretty JSON."""
     return json.dumps(report.to_dict(), indent=2, default=str)
+
+
+def _report_csv_rows(report: RugReport) -> list[dict]:
+    """Build a list of flat dicts (one per token) for CSV/JSONL export from a token report."""
+    d = report.to_dict()
+    flat: dict[str, Any] = {}
+    flat["token_address"] = report.token.address
+    flat["token_symbol"] = report.token.symbol
+    flat["token_name"] = report.token.name
+    flat["token_decimals"] = report.token.decimals
+    flat["safety_score"] = report.safety_score
+    flat["risk_level"] = report.risk_level
+    flat["recommendation"] = report.recommendation
+    flat["warnings"] = "; ".join(report.warnings)
+    # Score breakdown
+    score = d.get("score", {})
+    for k, v in score.items():
+        flat[f"score_{k}"] = v
+    # Flags
+    flags = d.get("flags", {})
+    for k, v in flags.items():
+        flat[f"flag_{k}"] = int(bool(v))
+    # Market data
+    market = d.get("market_data", {})
+    for k, v in market.items():
+        flat[f"market_{k}"] = v if v is not None else ""
+    return [flat]
+
+
+def _wallet_csv_rows(wallet_result: dict) -> list[dict]:
+    """Build a list of flat dicts (one per risky token) for CSV/JSONL export from a wallet scan."""
+    rows: list[dict] = []
+    base: dict[str, Any] = {
+        "wallet_address": wallet_result.get("address", ""),
+        "total_tokens": wallet_result.get("total_tokens", 0),
+        "risky_count": wallet_result.get("risky_count", 0),
+        "summary": wallet_result.get("summary", ""),
+    }
+    risky = wallet_result.get("risky_tokens", [])
+    if not risky:
+        rows.append(base)
+    else:
+        for t in risky:
+            row = dict(base)
+            row["token_mint"] = t.get("mint", "")
+            row["token_symbol"] = t.get("symbol", "")
+            row["balance_raw"] = t.get("balance_raw", 0)
+            row["token_decimals"] = t.get("decimals", 0)
+            row["safety_score"] = t.get("safety_score", 0)
+            row["risk_level"] = t.get("risk_level", "")
+            row["top_warnings"] = "; ".join(t.get("top_warnings", []))
+            rows.append(row)
+    return rows
+
+
+def format_csv(rows: list[dict]) -> str:
+    """Format a list of flat dicts as CSV string."""
+    import csv as _csv
+    import io
+    if not rows:
+        return ""
+    buf = io.StringIO()
+    writer = _csv.DictWriter(buf, fieldnames=list(rows[0].keys()), quoting=_csv.QUOTE_MINIMAL)
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({k: v if v is not None else "" for k, v in row.items()})
+    return buf.getvalue()
+
+
+def format_jsonl(rows: list[dict]) -> str:
+    """Format a list of flat dicts as JSONL (one JSON object per line)."""
+    lines = [json.dumps(row, default=str) for row in rows]
+    return "\n".join(lines) + "\n" if lines else ""
+
+
 # ── CLI Entry Point ────────────────────────────────────────────────────────
 
 def cli_token(args: list[str]) -> None:
     mint = args[0] if args else ""
     if not mint:
-        print('Usage: python rugguard.py token <MINT_ADDRESS>', file=sys.stderr)
+        print('Usage: python rugguard.py token <MINT_ADDRESS> [--json|--markdown|--export csv|jsonl]', file=sys.stderr)
+        sys.stderr.write('\n')
         sys.exit(1)
 
     mode = "json"
+    export_fmt = None
     if "--json" in args:
         mode = "json"
     if "--markdown" in args or "--md" in args:
         mode = "markdown"
+    if "--export" in args:
+        idx = args.index("--export")
+        if idx + 1 < len(args):
+            export_fmt = args[idx + 1].lower()
+        else:
+            print("--export requires a value: csv or jsonl", file=sys.stderr)
+            sys.exit(1)
+        mode = "export"
 
     report = rug_check_token(mint.strip())
-    if mode == "markdown":
+    if mode == "export":
+        rows = _report_csv_rows(report)
+        if export_fmt == "csv":
+            print(format_csv(rows))
+        elif export_fmt == "jsonl":
+            print(format_jsonl(rows))
+        else:
+            print(f"Unknown --export format: {export_fmt} (use csv or jsonl)", file=sys.stderr)
+            sys.exit(1)
+    elif mode == "markdown":
         print(format_markdown(report))
     else:
         print(format_json(report))
@@ -1652,11 +1746,27 @@ def cli_token(args: list[str]) -> None:
 def cli_wallet(args: list[str]) -> None:
     address = args[0] if args else ""
     if not address:
-        print('Usage: python rugguard.py wallet <ADDRESS>', file=sys.stderr)
+        print('Usage: python rugguard.py wallet <ADDRESS> [--export csv|jsonl]', file=sys.stderr)
         sys.exit(1)
 
+    export_fmt = None
+    if "--export" in args:
+        idx = args.index("--export")
+        if idx + 1 < len(args):
+            export_fmt = args[idx + 1].lower()
+        else:
+            print("--export requires a value: csv or jsonl", file=sys.stderr)
+            sys.exit(1)
+
     result = rug_check_wallet(address.strip())
-    print(json.dumps(result, indent=2, default=str))
+    if export_fmt == "csv":
+        rows = _wallet_csv_rows(result)
+        print(format_csv(rows))
+    elif export_fmt == "jsonl":
+        rows = _wallet_csv_rows(result)
+        print(format_jsonl(rows))
+    else:
+        print(json.dumps(result, indent=2, default=str))
 
     if result.get("risky_count", 0) > 0:
         sys.exit(2)
