@@ -20,25 +20,27 @@ if _scripts not in sys.path:
     sys.path.insert(0, _scripts)
 
 import pytest  # noqa: E402
-from rugguard import (  # noqa: E402
-    RugFlags,
-    RugReport,
-    RugScore,
+from analysis import RugReport, rug_check_token  # noqa: E402
+from formatting import format_json, format_markdown  # noqa: E402
+from onchain import (  # noqa: E402
     TokenMeta,
-    check_authorities,
-    compute_safety_score,
-    compute_score_components,
-    describe_watch_change,
-    ensure_history_db,
     estimate_token_age,
     fetch_token_holders,
     fetch_token_meta,
-    format_json,
-    format_markdown,
+)
+from scoring import (  # noqa: E402
+    RugFlags,
+    RugScore,
+    check_authorities,
+    compute_safety_score,
+    compute_score_components,
+)
+from watch import (  # noqa: E402
+    describe_watch_change,
+    ensure_history_db,
     load_last_history,
     prune_history,
     record_history,
-    rug_check_token,
 )
 
 # ── Test addresses (real mainnet) ──────────────────────────────────────────
@@ -121,9 +123,9 @@ class TestTokenHolders:
 
     def test_holder_fallback_gpa(self) -> None:
         """Fallback to getProgramAccounts when getTokenLargestAccounts fails."""
-        import rugguard
+        import onchain
 
-        original_rpc = rugguard._rpc_call
+        original_rpc = onchain._rpc_call
 
         def mock_rpc_call(method, params, *args, **kwargs):
             if method == "getTokenLargestAccounts":
@@ -159,9 +161,9 @@ class TestTokenHolders:
                 ]
             return original_rpc(method, params, *args, **kwargs)
 
-        with patch("rugguard._rpc_call", side_effect=mock_rpc_call):
-            with patch("rugguard._dex_screener_fetch", return_value=None):
-                holders = rugguard.fetch_token_holders("dummy_mint", 6)
+        with patch("onchain._rpc_call", side_effect=mock_rpc_call):
+            with patch("onchain._dex_screener_fetch", return_value=None):
+                holders = onchain.fetch_token_holders("dummy_mint", 6)
                 assert holders is not None
                 assert holders.total_holders == 2
                 assert holders.dev_wallet_pct == 60.0
@@ -445,7 +447,7 @@ class TestCLI:
 @pytest.mark.slow
 def test_wallet_scan() -> None:
     """Wallet scan should return valid structure."""
-    from rugguard import rug_check_wallet
+    from analysis import rug_check_wallet
     result = rug_check_wallet(TEST_WALLET)
     assert "address" in result
     assert result["address"] == TEST_WALLET
