@@ -450,4 +450,46 @@ def test_wallet_scan() -> None:
     assert "address" in result
     assert result["address"] == TEST_WALLET
     assert "total_tokens" in result
-    assert isinstance(result["total_tokens"], int)
+    assert isinstance(result['total_tokens'], int)
+
+
+# ── Timeline Tests ────────────────────────────────────────────────────────
+
+class TestTimelineFormatting:
+    def test_format_timeline_with_events(self):
+        from rugguard import _format_timeline
+        events = [
+            {"time": 1, "rel_time": "T+0s", "event": "Token Created",
+             "tx_sig": "abc123...", "details": "", "suspicious": False},
+            {"time": 5, "rel_time": "T+5s", "event": "Authority Change (mintTokens)",
+             "tx_sig": "def456...", "details": "Revoked", "suspicious": False},
+            {"time": 100, "rel_time": "T+1m", "event": "Large Transfer",
+             "tx_sig": "ghi789...", "details": "", "suspicious": True},
+        ]
+        out = _format_timeline("TestMint", events)
+        assert "Token Created" in out
+        assert "Authority Change" in out
+        assert "Large Transfer" in out
+        assert "⚠️" in out  # suspicious marker
+        assert "T+0s" in out
+        assert "T+1m" in out
+
+    def test_format_timeline_empty(self):
+        from rugguard import _format_timeline
+        out = _format_timeline("TestMint", [])
+        assert "No events" in out
+
+    def test_format_timeline_json(self):
+        from rugguard import _format_timeline_json
+        import json
+        events = [
+            {"time": 1, "rel_time": "T+0s", "event": "Token Created",
+             "tx_sig": "abc", "details": "", "suspicious": False},
+            {"time": 60, "rel_time": "T+1m", "event": "Transfer",
+             "tx_sig": "def", "details": "", "suspicious": False},
+        ]
+        out = _format_timeline_json(events)
+        parsed = json.loads(out)
+        assert len(parsed) == 2
+        assert parsed[0]["event"] == "Token Created"
+        assert parsed[1]["rel_time"] == "T+1m"
