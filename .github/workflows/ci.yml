@@ -32,7 +32,7 @@ jobs:
         run: uv run mypy rugguard/ || true
 
       - name: Run unit tests
-        run: uv run pytest tests/test_checks.py -v -k "not slow" --tb=short
+        run: uv run pytest tests/ -v -k "not slow" --tb=short
 
       - name: Check build
         run: uv build
