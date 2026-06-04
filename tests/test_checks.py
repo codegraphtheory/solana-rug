@@ -450,4 +450,44 @@ def test_wallet_scan() -> None:
     assert "address" in result
     assert result["address"] == TEST_WALLET
     assert "total_tokens" in result
-    assert isinstance(result["total_tokens"], int)
+    assert isinstance(result['total_tokens'], int)
+
+
+# ── Export Tests ──────────────────────────────────────────────────────────
+
+class TestExport:
+    def test_csv_headers(self):
+        from rugguard import _export_csv, RugScore, RugFlags, TokenMeta
+        flags = RugFlags()
+        report = RugReport(
+            token=TokenMeta(address='TestAddr', name='Test', symbol='TST'),
+            safety_score=75, risk_level='LOW',
+            score=RugScore(), flags=flags, warnings=[], recommendation='Looks safe',
+        )
+        csv_out = _export_csv([report])
+        assert 'token_address' in csv_out
+        assert 'safety_score' in csv_out
+        assert '75' in csv_out
+        assert 'LOW' in csv_out
+
+    def test_jsonl_multiple(self):
+        from rugguard import _export_jsonl, RugScore, RugFlags, TokenMeta
+        flags = RugFlags()
+        r1 = RugReport(
+            token=TokenMeta(address='Addr1'), safety_score=80, risk_level='LOW',
+            score=RugScore(), flags=flags, warnings=[], recommendation='Good',
+        )
+        r2 = RugReport(
+            token=TokenMeta(address='Addr2'), safety_score=30, risk_level='HIGH',
+            score=RugScore(), flags=flags, warnings=[], recommendation='Bad',
+        )
+        jsonl = _export_jsonl([r1, r2])
+        lines = jsonl.strip().split('\n')
+        assert len(lines) == 2
+        assert 'Addr1' in lines[0]
+        assert 'Addr2' in lines[1]
+        import json
+        for line in lines:
+            obj = json.loads(line)
+            assert 'token' in obj
+            assert 'safety_score' in obj
