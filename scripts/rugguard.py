@@ -1760,14 +1760,24 @@ def cli_token(args: list[str]) -> None:
         mode = "json"
     if "--markdown" in args or "--md" in args:
         mode = "markdown"
-    if "--export" in args:
-        idx = args.index("--export")
-        if idx + 1 < len(args):
-            export_fmt = args[idx + 1].lower()
-        else:
-            print("--export requires a value: csv or jsonl", file=sys.stderr)
-            sys.exit(1)
-        mode = "export"
+    # Handle --export csv, --export=jsonl, etc.
+    for a in args:
+        if a == "--export":
+            idx = args.index("--export")
+            if idx + 1 < len(args):
+                export_fmt = args[idx + 1].lower()
+            else:
+                print("--export requires a value: csv or jsonl", file=sys.stderr)
+                sys.exit(1)
+            mode = "export"
+            break
+        elif a.startswith("--export="):
+            export_fmt = a.split("=", 1)[1].lower()
+            if export_fmt not in ("csv", "jsonl"):
+                print(f"Unknown --export format: {export_fmt} (use csv or jsonl)", file=sys.stderr)
+                sys.exit(1)
+            mode = "export"
+            break
 
     report = rug_check_token(mint.strip())
     if mode == "export":
@@ -1793,13 +1803,21 @@ def cli_wallet(args: list[str]) -> None:
         sys.exit(1)
 
     export_fmt = None
-    if "--export" in args:
-        idx = args.index("--export")
-        if idx + 1 < len(args):
-            export_fmt = args[idx + 1].lower()
-        else:
-            print("--export requires a value: csv or jsonl", file=sys.stderr)
-            sys.exit(1)
+    for a in args:
+        if a == "--export":
+            idx = args.index("--export")
+            if idx + 1 < len(args):
+                export_fmt = args[idx + 1].lower()
+            else:
+                print("--export requires a value: csv or jsonl", file=sys.stderr)
+                sys.exit(1)
+            break
+        elif a.startswith("--export="):
+            export_fmt = a.split("=", 1)[1].lower()
+            if export_fmt not in ("csv", "jsonl"):
+                print(f"Unknown --export format: {export_fmt} (use csv or jsonl)", file=sys.stderr)
+                sys.exit(1)
+            break
 
     result = rug_check_wallet(address.strip())
     if export_fmt == "csv":

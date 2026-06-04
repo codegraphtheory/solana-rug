@@ -25,7 +25,9 @@ from rugguard import (  # noqa: E402
     RugReport,
     RugScore,
     TokenMeta,
+    _report_csv_rows,
     _sparkline_from_change,
+    _wallet_csv_rows,
     check_authorities,
     compute_safety_score,
     compute_score_components,
@@ -42,8 +44,6 @@ from rugguard import (  # noqa: E402
     prune_history,
     record_history,
     rug_check_token,
-    _report_csv_rows,
-    _wallet_csv_rows,
 )
 
 # ── Test addresses (real mainnet) ──────────────────────────────────────────
