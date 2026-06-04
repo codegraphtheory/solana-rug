@@ -261,6 +261,13 @@ NULL_ADDRESS = "11111111111111111111111111111111"
 SPL_TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 TOKEN_2022_PROGRAM = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
 
+# Liquidity scoring thresholds (configurable via env vars)
+LIQ_THRESHOLD_CRITICAL = int(os.environ.get("SOLANA_RUG_LIQ_THRESHOLD_CRITICAL", "1000"))
+LIQ_THRESHOLD_HIGH = int(os.environ.get("SOLANA_RUG_LIQ_THRESHOLD_HIGH", "5000"))
+LIQ_THRESHOLD_MEDIUM = int(os.environ.get("SOLANA_RUG_LIQ_THRESHOLD_MEDIUM", "20000"))
+LIQ_THRESHOLD_LOW = int(os.environ.get("SOLANA_RUG_LIQ_THRESHOLD_LOW", "100000"))
+LIQ_VOL_RATIO_WARNING = float(os.environ.get("SOLANA_RUG_LIQ_VOL_RATIO_WARNING", "15"))
+
 # Known DEX program IDs for LP detection
 KNOWN_DEX_PROGRAMS = {
     "Raydium": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
@@ -958,26 +965,46 @@ def compute_score_components(
         score.liquidity_risk = 15
         warnings.append("No LP detected — token may be untradeable")
 
-    # 3b. Liquidity — size/thin check (5 pts)
+    # 3b. Liquidity — size/thin check (5 pts, dynamically scaled)
+    liq = 0
+    vol = 0
     if dex_data:
-        liq = dex_data.get("liquidity_usd", 0)
-        if liq <= 0:
-            score.low_liquidity_risk = 5
-            warnings.append("No liquidity data available — token may be untradeable")
-        elif liq < 1000:
-            score.low_liquidity_risk = 5
-            warnings.append(f"Extremely thin liquidity (${liq:,.0f}) — one sell can crash price")
-        elif liq < 20000:
-            score.low_liquidity_risk = 3
-            warnings.append(f"Thin liquidity (${liq:,.0f}) — moderate price impact on trades")
+        liq = dex_data.get("liquidity_usd", 0) or 0
+        vol = dex_data.get("volume_24h", 0) or 0
     elif liquidity and liquidity.has_lp and liquidity.liquidity_usd > 0:
         liq = liquidity.liquidity_usd
-        if liq < 1000:
+        # No dex_data means no 24h volume available
+        vol = 0
+
+    if dex_data and liq <= 0:
+        # DexScreener reports the pair but liquidity is $0 — the pair exists
+        # but has no real backing (often a honeypot or dead pool)
+        score.low_liquidity_risk = 5
+        warnings.append("Pair exists with zero liquidity — token may be untradeable")
+    elif liq > 0:
+        if liq < LIQ_THRESHOLD_CRITICAL:
             score.low_liquidity_risk = 5
-            warnings.append(f"Extremely thin liquidity (${liq:,.0f})")
-        elif liq < 20000:
+            warnings.append(f"Extremely thin liquidity (${liq:,.0f}) — one sell can crash price")
+        elif liq < LIQ_THRESHOLD_HIGH:
+            score.low_liquidity_risk = 4
+            warnings.append(f"Very thin liquidity (${liq:,.0f}) — significant price impact on trades")
+        elif liq < LIQ_THRESHOLD_MEDIUM:
             score.low_liquidity_risk = 3
-            warnings.append(f"Thin liquidity (${liq:,.0f})")
+            warnings.append(f"Thin liquidity (${liq:,.0f}) — moderate price impact on trades")
+        elif liq < LIQ_THRESHOLD_LOW:
+            score.low_liquidity_risk = 1
+            warnings.append(f"Moderate liquidity (${liq:,.0f}) — some price impact possible")
+
+        # Volume-to-liquidity ratio — high ratio suggests wash trading or
+        # rapid churn relative to pool depth (unhealthy)
+        if vol > 0 and liq > 0:
+            ratio = vol / liq
+            if ratio > LIQ_VOL_RATIO_WARNING:
+                score.low_liquidity_risk = max(score.low_liquidity_risk, 3)
+                warnings.append(
+                    f"High volume/liquidity ratio ({ratio:.1f}x) — "
+                    f"${vol:,.0f} volume on ${liq:,.0f} liquidity — possible wash trading"
+                )
 
     # 4. Holder concentration (15 pts)
     if holders:
