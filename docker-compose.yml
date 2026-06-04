@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  solana-rug:
+    build: .
+    container_name: solana-rug-monitor
+    restart: unless-stopped
+    volumes:
+      - solana-rug-data:/data
+    environment:
+      - WATCH_TOKENS=DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263,EPjFWdd5AufQSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+      - WATCH_INTERVAL=300
+      - WEBHOOK_URL=
+      - THRESHOLD=40
+      - SOLANA_RPC_URL=
+
+volumes:
+  solana-rug-data:
