@@ -1,6 +1,6 @@
 [project]
 name = "solana-rug"
-version = "0.2.1"
+version = "0.3.0"
 description = "On-chain rug-pull detection for Solana tokens — Safety Score 0-100, zero paid APIs required."
 readme = "README.md"
 requires-python = ">=3.11"
