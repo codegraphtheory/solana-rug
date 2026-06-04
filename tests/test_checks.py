@@ -20,6 +20,7 @@ if _scripts not in sys.path:
     sys.path.insert(0, _scripts)
 
 import pytest  # noqa: E402
+
 from rugguard import (  # noqa: E402
     RugFlags,
     RugReport,
