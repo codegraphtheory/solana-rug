@@ -1497,6 +1497,45 @@ def cli_watch(args: list[str]) -> None:
 
 # ── Output Formatting ──────────────────────────────────────────────────────
 
+def _sparkline_from_change(pct_change: float) -> str | None:
+    """Build an ASCII sparkline from a 24h price change percentage.
+
+    Since DexScreener only gives one price point and its 24h change, we
+    interpolate a 10-character sparkline that approximates the price
+    trajectory: the start is derived from the change, the middle is a
+    gentle curve toward the end, and the end is the current price level.
+
+    Uses Unicode block chars: triangle_1triangle_2triangle_3triangle_4triangle_5triangle_6triangle_7triangle_8
+    Returns None when pct_change is 0 or unavailable (flat/no trend).
+    """
+    if pct_change is None or pct_change == 0:
+        return None
+
+    blocks = ["\u2581", "\u2582", "\u2583", "\u2584", "\u2585", "\u2586", "\u2587", "\u2588"]
+    n = 10
+
+    if pct_change > 0:
+        # Bullish: upward curve from -pct/2 to +pct/2
+        values = [-abs(pct_change) * 0.3 + (abs(pct_change) * 0.6) * (i / (n - 1)) for i in range(n)]
+    else:
+        # Bearish: downward curve from +pct/2 to -pct/2
+        values = [abs(pct_change) * 0.3 - (abs(pct_change) * 0.6) * (i / (n - 1)) for i in range(n)]
+
+    min_v = min(values)
+    max_v = max(values)
+    if max_v == min_v:
+        return None
+
+    spark = []
+    for v in values:
+        idx = int((v - min_v) / (max_v - min_v) * (len(blocks) - 1))
+        idx = max(0, min(idx, len(blocks) - 1))
+        spark.append(blocks[idx])
+
+    color = "\U0001f7e2" if pct_change > 0 else "\U0001f534"  # green/red circle
+    return color + "".join(spark) if abs(pct_change) > 1 else "".join(spark)
+
+
 def format_markdown(report: RugReport) -> str:
     """Format a rug report as clean Markdown."""
     token = report.token
@@ -1614,6 +1653,10 @@ def format_markdown(report: RugReport) -> str:
         sells = dd.get("txns_24h_sells", 0)
         if buys or sells:
             lines.append(f"- **24h Trades:** {buys} buys / {sells} sells ({buys+sells} total)")
+        # ASCII price sparkline
+        spark = _sparkline_from_change(dd.get("price_change_24h", 0))
+        if spark:
+            lines.append(f"- **24h Sparkline:** {spark}")
         if dd.get("dex"):
             lines.append(f"- **DEX:** {dd['dex']}")
         if dd.get("quote_symbol"):
