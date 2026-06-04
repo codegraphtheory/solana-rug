@@ -7,8 +7,10 @@ They may fail if the RPC is rate-limited or down.
 from __future__ import annotations
 
 import json
+import sqlite3
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 # Add scripts to path
@@ -24,11 +26,16 @@ from rugguard import (  # noqa: E402
     TokenMeta,
     check_authorities,
     compute_safety_score,
+    describe_watch_change,
+    ensure_history_db,
     estimate_token_age,
     fetch_token_holders,
     fetch_token_meta,
     format_json,
     format_markdown,
+    load_last_history,
+    prune_history,
+    record_history,
     rug_check_token,
 )
 
@@ -223,7 +230,77 @@ class TestOutput:
         assert "Avoid." in md
 
 
-# ── Full Analysis Integration Test ────────────────────────────────────────
+
+# ── Watch / History Tests ──────────────────────────────────────────────────
+
+class TestWatchHistory:
+    def test_history_roundtrip_and_change_detection(self, tmp_path) -> None:
+        db_path = tmp_path / "history.sqlite3"
+        report = RugReport(
+            token=TokenMeta(address=BONK_MINT, symbol="BONK"),
+            safety_score=85,
+            risk_level="LOW",
+            warnings=["baseline warning"],
+        )
+
+        ensure_history_db(str(db_path))
+        previous = load_last_history(BONK_MINT, str(db_path))
+        changed, reasons = describe_watch_change(previous, report)
+        assert changed
+        assert "first observation" in reasons
+
+        record_history(report, str(db_path))
+        previous = load_last_history(BONK_MINT, str(db_path))
+        assert previous is not None
+        assert previous["safety_score"] == 85
+
+        changed, reasons = describe_watch_change(previous, report)
+        assert not changed
+        assert reasons == []
+
+        lower_score = RugReport(
+            token=TokenMeta(address=BONK_MINT, symbol="BONK"),
+            safety_score=65,
+            risk_level="MEDIUM",
+            warnings=["baseline warning", "new warning"],
+        )
+        changed, reasons = describe_watch_change(previous, lower_score, threshold=70)
+        assert changed
+        assert any("score changed" in r for r in reasons)
+        assert any("risk level changed" in r for r in reasons)
+        assert any("threshold" in r for r in reasons)
+
+    def test_prune_old_entries(self, tmp_path) -> None:
+        db_path = tmp_path / "history.sqlite3"
+        report = RugReport(
+            token=TokenMeta(address=BONK_MINT, symbol="BONK"),
+            safety_score=50,
+            risk_level="HIGH",
+        )
+        ensure_history_db(str(db_path))
+
+        # Insert an artificially old entry (by manipulating checked_at via raw SQL)
+        old_ts = int(time.time()) - 91 * 86400  # 91 days ago
+        sig = json.dumps({"safety_score": 50}, sort_keys=True)
+        rpt = json.dumps(report.to_dict(), default=str)
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.execute(
+                """INSERT INTO token_scores
+                   (mint, checked_at, safety_score, risk_level, warning_count, signature_json, report_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (BONK_MINT, old_ts, 50, "HIGH", 0, sig, rpt),
+            )
+
+        # Prune
+        deleted = prune_history(str(db_path))
+        assert deleted == 1, f"Expected 1 deleted, got {deleted}"
+
+        # Fresh entry should still exist
+        record_history(report, str(db_path))
+        previous = load_last_history(BONK_MINT, str(db_path))
+        assert previous is not None
+        assert previous["safety_score"] == 50
+
 
 class TestFullAnalysis:
     @pytest.mark.slow

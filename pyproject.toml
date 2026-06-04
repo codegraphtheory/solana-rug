@@ -30,7 +30,7 @@ Repository = "https://github.com/rugpullnet/solana-rug"
 "Bug Tracker" = "https://github.com/rugpullnet/solana-rug/issues"
 
 [project.scripts]
-solana-rug = "rugguard:main"
+solana-rug = "scripts.rugguard:main"
 
 [dependency-groups]
 dev = [
@@ -58,4 +58,4 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["solana_rug*"]
+include = ["solana_rug*", "scripts*"]
