@@ -4,8 +4,8 @@
       <stop offset="0%" stop-color="#1a1a2e"/>
       <stop offset="100%" stop-color="#0a0a0f"/>
     </radialGradient>
-    <radialGradient id="glow" cx="50%" cy="50%" r="45%">
-      <stop offset="0%" stop-color="rgba(245,159,0,0.06)"/>
+    <radialGradient id="glow" cx="50%" cy="45%" r="40%">
+      <stop offset="0%" stop-color="rgba(245,159,0,0.05)"/>
       <stop offset="100%" stop-color="transparent"/>
     </radialGradient>
     <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -15,24 +15,14 @@
   </defs>
 
   <rect width="1280" height="640" fill="url(#bg)"/>
-  <circle cx="640" cy="320" r="420" fill="url(#glow)"/>
+  <circle cx="640" cy="290" r="400" fill="url(#glow)"/>
   <rect x="0" y="0" width="1280" height="4" fill="url(#accent)"/>
 
-  <!-- Shield logo -->
-  <g transform="translate(590, 120)">
-    <path d="M50 0 L100 25 L100 85 C100 135 50 160 50 160 C50 160 0 135 0 85 L0 25 Z" fill="none" stroke="url(#accent)" stroke-width="3"/>
-    <path d="M50 16 L90 36 L90 82 C90 122 50 145 50 145 C50 145 10 122 10 82 L10 36 Z" fill="rgba(245,159,0,0.08)"/>
-    <path d="M36 78 L46 88 L64 66" fill="none" stroke="#f59f00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
+  <text x="640" y="265" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="76" font-weight="800" fill="#ffffff" text-anchor="middle">Rugpull <tspan fill="#f59f00">$RUG</tspan></text>
+  <text x="640" y="320" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="22" font-weight="500" fill="#a0a0b0" text-anchor="middle">13-Factor On-Chain Rug-Pull Detection</text>
 
-  <!-- Centered text -->
-  <text x="640" y="290" font-family="'Inter', system-ui, sans-serif" font-size="72" font-weight="800" fill="#ffffff" text-anchor="middle">Rugpull <tspan fill="#f59f00">$RUG</tspan></text>
-  <text x="640" y="350" font-family="'Inter', system-ui, sans-serif" font-size="24" font-weight="500" fill="#a0a0b0" text-anchor="middle">On-Chain Rug-Pull Detection for Solana</text>
+  <rect x="520" y="355" width="240" height="38" rx="19" fill="#14141c" stroke="#2a2a3e" stroke-width="1"/>
+  <text x="640" y="379" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#e4e4e7" text-anchor="middle">rugpullnet / solana-rug</text>
 
-  <!-- Repo name pill -->
-  <rect x="520" y="390" width="240" height="36" rx="18" fill="#14141c" stroke="#2a2a3e" stroke-width="1"/>
-  <text x="640" y="413" font-family="'Inter', system-ui, sans-serif" font-size="14" font-weight="600" fill="#e4e4e7" text-anchor="middle">rugpullnet / solana-rug</text>
-
-  <!-- Bottom -->
-  <text x="640" y="580" font-family="'Inter', system-ui, sans-serif" font-size="14" font-weight="500" fill="#5c5c72" text-anchor="middle">MIT Licensed · Open Source · No Paid APIs</text>
+  <text x="640" y="570" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#5c5c72" text-anchor="middle">MIT Licensed · Open Source · No Paid APIs</text>
 </svg>
