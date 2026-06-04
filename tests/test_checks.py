@@ -652,3 +652,45 @@ class TestExport:
         # CSV should not contain markdown headers
         assert "# " not in csv_out
         assert "|" not in csv_out
+
+
+# ── Comparison Tests ──────────────────────────────────────────────────────
+
+class TestCompare:
+    def test_table_two_tokens(self):
+        from rugguard import RugFlags, RugScore, TokenMeta, _format_comparison_table
+        flags = RugFlags()
+        r1 = RugReport(
+            token=TokenMeta(address="A"), safety_score=80, risk_level="LOW",
+            score=RugScore(), flags=flags, warnings=[], recommendation="",
+        )
+        r2 = RugReport(
+            token=TokenMeta(address="B"), safety_score=30, risk_level="HIGH",
+            score=RugScore(), flags=flags, warnings=["Flag"], recommendation="",
+        )
+        tbl = _format_comparison_table([r1, r2])
+        assert "Safety Score" in tbl
+        assert "80" in tbl
+        assert "30" in tbl
+        assert "HIGH" in tbl
+        assert "---" in tbl
+
+    def test_sort_by_name(self):
+        from rugguard import RugFlags, RugScore, TokenMeta, _format_comparison_table
+        flags = RugFlags()
+        r1 = RugReport(
+            token=TokenMeta(address="A", symbol="ZZZ"), safety_score=50,
+            risk_level="MEDIUM", score=RugScore(), flags=flags, warnings=[], recommendation="",
+        )
+        r2 = RugReport(
+            token=TokenMeta(address="B", symbol="AAA"), safety_score=50,
+            risk_level="MEDIUM", score=RugScore(), flags=flags, warnings=[], recommendation="",
+        )
+        tbl = _format_comparison_table([r1, r2], sort_by="name")
+        idx_aaa = tbl.index("AAA")
+        idx_zzz = tbl.index("ZZZ")
+        assert idx_aaa < idx_zzz, "AAA should be before ZZZ when sorted by name"
+
+    def test_empty_no_crash(self):
+        from rugguard import _format_comparison_table
+        assert _format_comparison_table([]) == ""
