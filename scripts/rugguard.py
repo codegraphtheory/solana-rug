@@ -35,6 +35,11 @@ PUBLIC_RPCS = [
 
 RPC_URL = os.environ.get("SOLANA_RPC_URL", PUBLIC_RPCS[0])
 
+# Scoring Thresholds
+LIQ_THRESHOLD_THIN = float(os.environ.get("LIQ_THRESHOLD_THIN", "20000"))
+LIQ_THRESHOLD_EXTREME = float(os.environ.get("LIQ_THRESHOLD_EXTREME", "1000"))
+VOL_LIQ_RATIO_MIN = float(os.environ.get("VOL_LIQ_RATIO_MIN", "0.05"))
+
 LAMPORTS_PER_SOL = 1_000_000_000
 
 # ── Multi-RPC fallback ──────────────────────────────────────────────────────
@@ -433,6 +438,43 @@ def fetch_token_holders(mint: str, decimals: int) -> HolderInfo | None:
                 )
                 _set_cache(cache_key, asdict(info))
                 return info
+
+    # Try getProgramAccounts fallback (especially for Token-2022) if getTokenLargestAccounts fails
+    for prog_id in ["TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb", "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"]:
+        gpa = _rpc_call("getProgramAccounts", [prog_id, {
+            "encoding": "jsonParsed",
+            "filters": [{"memcmp": {"offset": 0, "bytes": mint}}]
+        }])
+        if gpa and isinstance(gpa, list):
+            parsed_holders = []
+            for acct in gpa:
+                try:
+                    info_data = acct.get("account", {}).get("data", {}).get("parsed", {}).get("info", {})
+                    amt_str = info_data.get("tokenAmount", {}).get("amount", "0")
+                    owner = info_data.get("owner", "")
+                    amt = int(amt_str)
+                    if amt > 0:
+                        parsed_holders.append({"address": owner, "amount": amt})
+                except Exception:
+                    pass
+            if parsed_holders:
+                parsed_holders.sort(key=lambda x: x["amount"], reverse=True)
+                total_supply = sum(h["amount"] for h in parsed_holders)
+                if total_supply > 0:
+                    top_holders = []
+                    for h in parsed_holders:
+                        pct = round(h["amount"] / total_supply * 100, 2)
+                        top_holders.append({"address": h["address"], "amount": h["amount"], "pct": pct})
+                    top_10_pct = sum(h["pct"] for h in top_holders[:10])
+                    dev_pct = top_holders[0]["pct"] if top_holders else 0.0
+                    info = HolderInfo(
+                        total_holders=len(parsed_holders),
+                        top_10_pct=min(top_10_pct, 100.0),
+                        dev_wallet_pct=dev_pct,
+                        top_holders=top_holders[:10],
+                    )
+                    _set_cache(cache_key, asdict(info))
+                    return info
 
     # RPC failed (common for Token-2022 on public RPC) — try DexScreener
     dex_data = _dex_screener_fetch(mint)
@@ -899,24 +941,32 @@ def compute_score_components(
         score.liquidity_risk = 15
         warnings.append("No LP detected — token may be untradeable")
 
-    # 3b. Liquidity — size/thin check (5 pts)
+    # 3b. Liquidity — size/thin check (5 pts) and DexScreener validation
     if dex_data:
         liq = dex_data.get("liquidity_usd", 0)
+        vol = dex_data.get("volume_24h", 0)
         if liq <= 0:
-            score.low_liquidity_risk = 5
-            warnings.append("No liquidity data available — token may be untradeable")
-        elif liq < 1000:
-            score.low_liquidity_risk = 5
-            warnings.append(f"Extremely thin liquidity (${liq:,.0f}) — one sell can crash price")
-        elif liq < 20000:
-            score.low_liquidity_risk = 3
-            warnings.append(f"Thin liquidity (${liq:,.0f}) — moderate price impact on trades")
+            score.low_liquidity_risk = 20  # Max penalty for zero liquidity even if pair exists
+            warnings.append("Zero liquidity reported on DEX — token may be untradeable or rugged")
+        else:
+            if liq < LIQ_THRESHOLD_EXTREME:
+                score.low_liquidity_risk = 5
+                warnings.append(f"Extremely thin liquidity (${liq:,.0f}) — one sell can crash price")
+            elif liq < LIQ_THRESHOLD_THIN:
+                score.low_liquidity_risk = 3
+                warnings.append(f"Thin liquidity (${liq:,.0f}) — moderate price impact on trades")
+            
+            # Check volume-to-liquidity ratio
+            ratio = vol / liq
+            if ratio < VOL_LIQ_RATIO_MIN:
+                score.low_liquidity_risk = min(20, score.low_liquidity_risk + 5)
+                warnings.append(f"Low volume-to-liquidity ratio ({ratio:.2f}) — inactive or dead pool")
     elif liquidity and liquidity.has_lp and liquidity.liquidity_usd > 0:
         liq = liquidity.liquidity_usd
-        if liq < 1000:
+        if liq < LIQ_THRESHOLD_EXTREME:
             score.low_liquidity_risk = 5
             warnings.append(f"Extremely thin liquidity (${liq:,.0f})")
-        elif liq < 20000:
+        elif liq < LIQ_THRESHOLD_THIN:
             score.low_liquidity_risk = 3
             warnings.append(f"Thin liquidity (${liq:,.0f})")
 

@@ -117,6 +117,35 @@ class TestTokenHolders:
             assert holders.top_10_pct > 0
             assert len(holders.top_holders) > 0
 
+    def test_holder_fallback_gpa(self) -> None:
+        """Fallback to getProgramAccounts when getTokenLargestAccounts fails."""
+        import rugguard
+        from unittest.mock import patch
+        
+        # Mock _rpc_call to simulate getTokenLargestAccounts failure, but getProgramAccounts success
+        original_rpc = rugguard._rpc_call
+        
+        def mock_rpc_call(method, params, *args, **kwargs):
+            if method == "getTokenLargestAccounts":
+                return None
+            elif method == "getProgramAccounts":
+                # Return dummy jsonParsed token accounts
+                return [
+                    {"account": {"data": {"parsed": {"info": {"tokenAmount": {"amount": "6000"}, "owner": "wallet1"}}}}},
+                    {"account": {"data": {"parsed": {"info": {"tokenAmount": {"amount": "4000"}, "owner": "wallet2"}}}}}
+                ]
+            return original_rpc(method, params, *args, **kwargs)
+
+        with patch("rugguard._rpc_call", side_effect=mock_rpc_call):
+            # Also mock DexScreener to prevent hitting the network if something slips
+            with patch("rugguard._dex_screener_fetch", return_value=None):
+                holders = rugguard.fetch_token_holders("dummy_mint", 6)
+                
+                assert holders is not None
+                assert holders.total_holders == 2
+                assert holders.dev_wallet_pct == 60.0  # wallet1 has 6000/10000 = 60%
+                assert holders.top_10_pct == 100.0
+
 
 # ── Token Age Tests ───────────────────────────────────────────────────────
 
@@ -181,6 +210,28 @@ class TestScoring:
             )
             safety, level, rec = compute_safety_score(flags, score, [])
             assert 0 <= safety <= 100
+
+    def test_dexscreener_zero_liquidity_penalty(self) -> None:
+        """Zero liquidity from DexScreener should result in max liquidity penalty."""
+        from rugguard import compute_score_components, RugFlags, TokenMeta, HolderInfo, LiquidityInfo
+        flags = RugFlags()
+        token = TokenMeta(address="test", decimals=6)
+        dex_data = {"liquidity_usd": 0, "volume_24h": 0}
+        score, warnings = compute_score_components(flags, token, None, None, None, None, dex_data=dex_data)
+        assert score.low_liquidity_risk == 20
+        assert any("Zero liquidity" in w for w in warnings)
+
+    def test_dexscreener_volume_ratio_penalty(self) -> None:
+        """Low volume-to-liquidity ratio should add a 5 point penalty."""
+        from rugguard import compute_score_components, RugFlags, TokenMeta
+        flags = RugFlags()
+        token = TokenMeta(address="test", decimals=6)
+        # Volume is 100, liquidity is 10000 -> ratio is 0.01 (below 0.05 default)
+        dex_data = {"liquidity_usd": 10000, "volume_24h": 100}
+        score, warnings = compute_score_components(flags, token, None, None, None, None, dex_data=dex_data)
+        # 3 points for thin liquidity (10000 < 20000) + 5 points for ratio = 8
+        assert score.low_liquidity_risk == 8
+        assert any("Low volume-to-liquidity ratio" in w for w in warnings)
 
 
 # ── Output Formatting Tests ───────────────────────────────────────────────

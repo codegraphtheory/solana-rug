@@ -57,6 +57,11 @@
 | Mint History | 5 | 0 | ✅ No post-launch mints detected |
 | Honeypot | 10 | 0 | ✅ Token is actively traded on pumpSwap |
 
+*Note on DexScreener LP Scoring:*
+- **Zero Liquidity:** Even if the pair exists on DexScreener, 0 liquidity triggers a maximum 20-point penalty.
+- **Thin Liquidity:** Liquidity under $1,000 (configurable via `LIQ_THRESHOLD_EXTREME`) adds a 5-point risk penalty, while liquidity under $20,000 (`LIQ_THRESHOLD_THIN`) adds a 3-point risk penalty.
+- **Volume-to-Liquidity Ratio:** Ratios below 0.05 (`VOL_LIQ_RATIO_MIN`) trigger a 5-point penalty to penalize inactive/dead pools.
+
 ---
 
 ## 4. Deployer Wallet Analysis
