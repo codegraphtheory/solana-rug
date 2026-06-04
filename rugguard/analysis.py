@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from dataclasses import asdict, dataclass, field
 
-from onchain import (
+from .onchain import (
     HolderInfo,
     HoneypotResult,
     LiquidityInfo,
@@ -18,8 +18,8 @@ from onchain import (
     fetch_token_meta,
     resolve_deployer,
 )
-from rpc import _rpc_call
-from scoring import (
+from .rpc import _rpc_call
+from .scoring import (
     RugFlags,
     RugScore,
     check_authorities,

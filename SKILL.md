@@ -61,16 +61,16 @@ hermes skills install ./SKILL.md
 SKILL_DIR=~/.hermes/skills/blockchain/solana-rug/scripts
 
 # Token analysis (JSON default):
-python3 $SKILL_DIR/rugguard.py token <MINT_ADDRESS>
+python3 $SKILL_DIR/solana-rug.py token <MINT_ADDRESS>
 
 # Human-readable Markdown report:
-python3 $SKILL_DIR/rugguard.py token <MINT_ADDRESS> --md
+python3 $SKILL_DIR/solana-rug.py token <MINT_ADDRESS> --md
 
 # Batch scan a wallet for risky tokens:
-python3 $SKILL_DIR/rugguard.py wallet <WALLET_ADDRESS>
+python3 $SKILL_DIR/solana-rug.py wallet <WALLET_ADDRESS>
 
 # Help:
-python3 $SKILL_DIR/rugguard.py --help
+python3 $SKILL_DIR/solana-rug.py --help
 ```
 
 The Hermes agent should always use `--md` for human consumption and `--json` for programmatic use.
@@ -208,7 +208,7 @@ Calculates deployer's holdings as % of pool liquidity. If deployer's bag is wort
 ## Wallet Scan
 
 ```bash
-python3 $SKILL_DIR/rugguard.py wallet <ADDRESS>
+python3 $SKILL_DIR/solana-rug.py wallet <ADDRESS>
 ```
 
 Scans every SPL token held by a wallet. For each token with meaningful balance, checks mint authority. Returns prioritized list of risky tokens. This is a light scan (metadata + authorities only, not full analysis) to avoid excessive RPC calls.
@@ -237,7 +237,7 @@ Scans every SPL token held by a wallet. For each token with meaningful balance, 
 ## Verification Test
 
 ```bash
-python3 $SKILL_DIR/rugguard.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --md
+python3 $SKILL_DIR/solana-rug.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --md
 ```
 
 Expected: BONK returns safety score 85-100 (established token, authorities revoked, deep liquidity). Verifies the tool works end-to-end.

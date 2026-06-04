@@ -6,7 +6,7 @@ from base64 import b64decode
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from rpc import _cached, _rpc_call, _set_cache
+from .rpc import _cached, _rpc_call, _set_cache
 
 
 @dataclass

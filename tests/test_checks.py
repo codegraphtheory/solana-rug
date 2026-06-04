@@ -14,28 +14,31 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-# Add scripts to path
+# Make the rugguard package importable without an install, and keep the
+# launcher path for the subprocess CLI tests.
+_root = str(Path(__file__).resolve().parent.parent)
+if _root not in sys.path:
+    sys.path.insert(0, _root)
 _scripts = str(Path(__file__).resolve().parent.parent / "scripts")
-if _scripts not in sys.path:
-    sys.path.insert(0, _scripts)
 
 import pytest  # noqa: E402
-from analysis import RugReport, rug_check_token  # noqa: E402
-from formatting import format_json, format_markdown  # noqa: E402
-from onchain import (  # noqa: E402
+
+from rugguard.analysis import RugReport, rug_check_token  # noqa: E402
+from rugguard.formatting import format_json, format_markdown  # noqa: E402
+from rugguard.onchain import (  # noqa: E402
     TokenMeta,
     estimate_token_age,
     fetch_token_holders,
     fetch_token_meta,
 )
-from scoring import (  # noqa: E402
+from rugguard.scoring import (  # noqa: E402
     RugFlags,
     RugScore,
     check_authorities,
     compute_safety_score,
     compute_score_components,
 )
-from watch import (  # noqa: E402
+from rugguard.watch import (  # noqa: E402
     describe_watch_change,
     ensure_history_db,
     load_last_history,
@@ -123,7 +126,7 @@ class TestTokenHolders:
 
     def test_holder_fallback_gpa(self) -> None:
         """Fallback to getProgramAccounts when getTokenLargestAccounts fails."""
-        import onchain
+        from rugguard import onchain
 
         original_rpc = onchain._rpc_call
 
@@ -161,8 +164,8 @@ class TestTokenHolders:
                 ]
             return original_rpc(method, params, *args, **kwargs)
 
-        with patch("onchain._rpc_call", side_effect=mock_rpc_call):
-            with patch("onchain._dex_screener_fetch", return_value=None):
+        with patch("rugguard.onchain._rpc_call", side_effect=mock_rpc_call):
+            with patch("rugguard.onchain._dex_screener_fetch", return_value=None):
                 holders = onchain.fetch_token_holders("dummy_mint", 6)
                 assert holders is not None
                 assert holders.total_holders == 2
@@ -397,7 +400,7 @@ class TestCLI:
     @pytest.mark.slow
     def test_cli_token_bonk_json(self) -> None:
         """CLI token command on BONK should return valid JSON."""
-        script = Path(_scripts) / "rugguard.py"
+        script = Path(_scripts) / "solana-rug.py"
         result = subprocess.run(
             [sys.executable, str(script), "token", BONK_MINT, "--json"],
             capture_output=True, text=True, timeout=60,
@@ -410,7 +413,7 @@ class TestCLI:
     @pytest.mark.slow
     def test_cli_token_bonk_markdown(self) -> None:
         """CLI token command with --md should return Markdown."""
-        script = Path(_scripts) / "rugguard.py"
+        script = Path(_scripts) / "solana-rug.py"
         result = subprocess.run(
             [sys.executable, str(script), "token", BONK_MINT, "--md"],
             capture_output=True, text=True, timeout=60,
@@ -422,7 +425,7 @@ class TestCLI:
     @pytest.mark.slow
     def test_cli_help(self) -> None:
         """CLI --help should work."""
-        script = Path(_scripts) / "rugguard.py"
+        script = Path(_scripts) / "solana-rug.py"
         result = subprocess.run(
             [sys.executable, str(script), "--help"],
             capture_output=True, text=True, timeout=10,
@@ -433,7 +436,7 @@ class TestCLI:
     @pytest.mark.slow
     def test_cli_invalid_mint(self) -> None:
         """CLI should handle invalid mints gracefully."""
-        script = Path(_scripts) / "rugguard.py"
+        script = Path(_scripts) / "solana-rug.py"
         result = subprocess.run(
             [sys.executable, str(script), "token", "InvalidMintAddress"],
             capture_output=True, text=True, timeout=15,
@@ -447,7 +450,7 @@ class TestCLI:
 @pytest.mark.slow
 def test_wallet_scan() -> None:
     """Wallet scan should return valid structure."""
-    from analysis import rug_check_wallet
+    from rugguard.analysis import rug_check_wallet
     result = rug_check_wallet(TEST_WALLET)
     assert "address" in result
     assert result["address"] == TEST_WALLET

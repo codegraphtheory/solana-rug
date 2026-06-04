@@ -4,8 +4,8 @@ import os
 import time
 from dataclasses import dataclass, field
 
-from onchain import HolderInfo, HoneypotResult, LiquidityInfo, MintHistory, TokenMeta
-from rpc import _cached, _rpc_call, _set_cache
+from .onchain import HolderInfo, HoneypotResult, LiquidityInfo, MintHistory, TokenMeta
+from .rpc import _cached, _rpc_call, _set_cache
 
 
 @dataclass

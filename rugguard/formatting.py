@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from analysis import RugReport
+from .analysis import RugReport
 
 
 def format_markdown(report: RugReport) -> str:

@@ -7,7 +7,7 @@ import sys
 import time
 import urllib.request
 
-from analysis import RugReport, rug_check_token
+from .analysis import RugReport, rug_check_token
 
 DEFAULT_HISTORY_DB = os.environ.get("SOLANA_RUG_HISTORY_DB", os.path.expanduser("~/.solana-rug/history.sqlite3"))
 HISTORY_RETENTION_DAYS = int(os.environ.get("SOLANA_RUG_HISTORY_RETENTION_DAYS", "90"))

@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import sys
 
-from analysis import rug_check_token, rug_check_wallet
-from formatting import format_json, format_markdown
-from watch import cli_watch
+from .analysis import rug_check_token, rug_check_wallet
+from .formatting import format_json, format_markdown
+from .watch import cli_watch
 
 
 def cli_token(args: list[str]) -> None:
@@ -96,7 +96,3 @@ def main() -> None:
         print(f"Unknown command: {cmd}", file=sys.stderr)
         cli_help()
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
