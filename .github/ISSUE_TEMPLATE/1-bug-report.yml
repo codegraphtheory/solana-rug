@@ -70,8 +70,8 @@ body:
       label: Reproduction Steps
       description: "Exact commands and full output. Paste the complete terminal session."
       placeholder: |
-        curl -OL https://github.com/rugpullnet/solana-rug/releases/latest/download/rugguard.py
-        python3 rugguard.py token <MINT> --json
+        curl -OL https://github.com/rugpullnet/solana-rug/releases/latest/download/solana-rug.pyz
+        python3 solana-rug.pyz token <MINT> --json
 
         # Or using pip:
         pip install solana-rug

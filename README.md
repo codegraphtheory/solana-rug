@@ -47,16 +47,16 @@ Then ask in natural language:
 ### Option B: Run the CLI Standalone
 
 ```bash
-# Single file — no install needed (from GitHub Releases)
-curl -OL https://github.com/rugpullnet/solana-rug/releases/latest/download/rugguard.py
-python3 rugguard.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --md
+# Single self-contained executable — no install needed (from GitHub Releases)
+curl -OL https://github.com/rugpullnet/solana-rug/releases/latest/download/solana-rug.pyz
+python3 solana-rug.pyz token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --md
 ```
 
 ```bash
 # Or clone the repo
 git clone https://github.com/rugpullnet/solana-rug.git
 cd solana-rug
-python3 scripts/rugguard.py --help
+python3 scripts/solana-rug.py --help
 ```
 
 ```bash
@@ -68,7 +68,7 @@ solana-rug token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263
 ### Verify It Works
 
 ```bash
-python3 rugguard.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --json
+python3 solana-rug.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --json
 ```
 
 Expected: BONK returns `safety_score: 100`, zero warnings, market data showing $682k liquidity on Meteora.
@@ -81,13 +81,13 @@ Expected: BONK returns `safety_score: 100`, zero warnings, market data showing $
 
 ```bash
 # JSON output (default) — pipe through jq
-python3 rugguard.py token <MINT_ADDRESS>
+python3 solana-rug.py token <MINT_ADDRESS>
 
 # Human-readable Markdown report
-python3 rugguard.py token <MINT_ADDRESS> --md
+python3 solana-rug.py token <MINT_ADDRESS> --md
 
 # Full example
-python3 rugguard.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --md
+python3 solana-rug.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --md
 ```
 
 JSON output includes a `market_data` block with DexScreener enrichment:
@@ -118,7 +118,7 @@ JSON output includes a `market_data` block with DexScreener enrichment:
 ### Wallet Scan
 
 ```bash
-python3 rugguard.py wallet <ADDRESS>
+python3 solana-rug.py wallet <ADDRESS>
 ```
 
 Scans all SPL tokens held by a wallet. For each token with meaningful balance, checks mint authority. Returns a prioritized list of risky tokens ordered by safety score (lowest first).
@@ -127,13 +127,13 @@ Scans all SPL tokens held by a wallet. For each token with meaningful balance, c
 
 ```bash
 # One check, store a SQLite history row, then exit
-python3 rugguard.py watch <MINT_ADDRESS> --iterations 1
+python3 solana-rug.py watch <MINT_ADDRESS> --iterations 1
 
 # Continuous monitoring every 60 seconds
-python3 rugguard.py watch <MINT_ADDRESS> --interval 60
+python3 solana-rug.py watch <MINT_ADDRESS> --interval 60
 
 # Alert whenever score/flags/warnings change, or whenever safety <= 70
-python3 rugguard.py watch <MINT_ADDRESS> --threshold 70 --webhook https://example.com/webhook
+python3 solana-rug.py watch <MINT_ADDRESS> --threshold 70 --webhook https://example.com/webhook
 ```
 
 Watch mode stores every run in a local SQLite database and prints one JSON event per check:
@@ -225,11 +225,18 @@ User Input (mint address)
 ```
 solana-rug/
 ├── SKILL.md                    # Hermes skill definition (docs all 13 checks)
-├── scripts/
-│   └── rugguard.py            # Core engine (~1470 lines, stdlib-only)
-├── solana_rug/                 # PyPI package wrapper
-│   ├── __init__.py
+├── rugguard/                   # Core engine — stdlib-only PyPI package
+│   ├── __init__.py             # Public API re-exports
+│   ├── rpc.py                  # JSON-RPC client + response cache
+│   ├── onchain.py              # On-chain fetchers and checks
+│   ├── scoring.py              # RugFlags + risk scoring
+│   ├── analysis.py             # rug_check_token()/rug_check_wallet() pipeline
+│   ├── formatting.py           # Markdown/JSON report rendering
+│   ├── watch.py                # Watch mode, SQLite history, webhooks
+│   ├── cli.py                  # Argument parsing + command dispatch
 │   └── py.typed
+├── scripts/
+│   └── solana-rug.py           # Standalone CLI launcher (no install needed)
 ├── pyproject.toml
 ├── tests/
 │   └── test_checks.py         # 20 tests (13 unit + 7 blockchain integration)

@@ -24,6 +24,16 @@ jobs:
       - name: Build package
         run: uv build
 
+      - name: Build standalone zipapp
+        run: |
+          mkdir -p build/bundle
+          cp -r rugguard build/bundle/
+          printf 'from rugguard.cli import main\nmain()\n' > build/bundle/__main__.py
+          python -m zipapp build/bundle \
+            -p "/usr/bin/env python3" \
+            -o dist/solana-rug.pyz
+          python dist/solana-rug.pyz --help
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -65,5 +75,4 @@ jobs:
           body: ${{ steps.changelog.outputs.changelog }}
           files: |
             dist/*
-            scripts/rugguard.py
           generate_release_notes: false

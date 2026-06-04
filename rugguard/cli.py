@@ -11,7 +11,7 @@ from .watch import cli_watch
 def cli_token(args: list[str]) -> None:
     mint = args[0] if args else ""
     if not mint:
-        print("Usage: python rugguard.py token <MINT_ADDRESS>", file=sys.stderr)
+        print("Usage: solana-rug token <MINT_ADDRESS>", file=sys.stderr)
         sys.exit(1)
 
     mode = "json"
@@ -33,7 +33,7 @@ def cli_token(args: list[str]) -> None:
 def cli_wallet(args: list[str]) -> None:
     address = args[0] if args else ""
     if not address:
-        print("Usage: python rugguard.py wallet <ADDRESS>", file=sys.stderr)
+        print("Usage: solana-rug wallet <ADDRESS>", file=sys.stderr)
         sys.exit(1)
 
     result = rug_check_wallet(address.strip())
@@ -47,9 +47,9 @@ def cli_help() -> None:
     print("""Solana Rug Guard — On-chain rug-pull detection engine
 
 USAGE:
-    python rugguard.py token <MINT_ADDRESS> [--json|--markdown]
-    python rugguard.py wallet <WALLET_ADDRESS>
-    python rugguard.py watch <MINT_ADDRESS> [--interval 60] [--iterations 0]
+    solana-rug token <MINT_ADDRESS> [--json|--markdown]
+    solana-rug wallet <WALLET_ADDRESS>
+    solana-rug watch <MINT_ADDRESS> [--interval 60] [--iterations 0]
         [--history PATH] [--webhook URL] [--threshold SCORE]
 
 OPTIONS:
@@ -65,10 +65,10 @@ WATCH OPTIONS:
     --threshold   Alert whenever safety_score is <= this value
 
 EXAMPLES:
-    python rugguard.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263
-    python rugguard.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --markdown
-    python rugguard.py wallet 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM
-    python rugguard.py watch <MINT_ADDRESS> --iterations 1 --threshold 70
+    solana-rug token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263
+    solana-rug token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --markdown
+    solana-rug wallet 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM
+    solana-rug watch <MINT_ADDRESS> --iterations 1 --threshold 70
 
 ENVIRONMENT:
     SOLANA_RPC_URL    Override RPC endpoint (default: api.mainnet-beta.solana.com)

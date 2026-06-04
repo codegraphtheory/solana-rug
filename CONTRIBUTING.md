@@ -8,14 +8,16 @@ The most valuable contributions are new detection checks. Each check should be:
 
 1. **Deterministic** — Same input always produces same output
 2. **On-chain first** — No paid APIs, no web scraping
-3. **Self-contained** — Add to `scripts/rugguard.py` in the existing pattern
+3. **Stdlib-only** — Add to the `rugguard/` package following the existing module layout
 
 ### Adding a Check
 
-1. Add your analysis function (e.g., `check_my_risk()`)
-2. Add any new flags to `RugFlags` dataclass
-3. Add risk points to `compute_score_components()`
-4. Add to the `rug_check_token()` pipeline
+The engine is split across the `rugguard/` package: `onchain.py` (RPC fetchers + on-chain checks), `scoring.py` (`RugFlags`, scoring), `analysis.py` (the `rug_check_token()` pipeline), `formatting.py`, `cli.py`, `watch.py`.
+
+1. Add your analysis function (e.g., `check_my_risk()`) to `rugguard/onchain.py` or `rugguard/scoring.py`
+2. Add any new flags to the `RugFlags` dataclass in `rugguard/scoring.py`
+3. Add risk points to `compute_score_components()` in `rugguard/scoring.py`
+4. Add to the `rug_check_token()` pipeline in `rugguard/analysis.py`
 5. Add test cases in `tests/test_checks.py`
 6. Update the score breakdown table in SKILL.md
 
@@ -32,7 +34,7 @@ pip install pytest ruff mypy
 pytest -v
 
 # Lint
-ruff check scripts/rugguard.py
+ruff check rugguard/ scripts/ tests/
 ```
 
 ## Pull Request Process
@@ -40,7 +42,7 @@ ruff check scripts/rugguard.py
 1. Ensure all existing tests pass
 2. Add tests for new functionality
 3. Update SKILL.md if adding commands or flags
-4. Keep `rugguard.py` under 700 LOC
+4. Keep each `rugguard/` module focused and reasonably sized
 5. Reference real mainnet addresses in tests
 
 ## Code Style

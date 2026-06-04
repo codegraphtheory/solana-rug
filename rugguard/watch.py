@@ -153,7 +153,7 @@ def _parse_watch_args(args: list[str]) -> dict:
     mint = args[0] if args else ""
     if not mint:
         usage = (
-            "Usage: python rugguard.py watch <MINT_ADDRESS> [--interval 60] "
+            "Usage: solana-rug watch <MINT_ADDRESS> [--interval 60] "
             "[--iterations 0] [--history PATH] [--webhook URL] [--threshold SCORE]"
         )
         print(usage, file=sys.stderr)

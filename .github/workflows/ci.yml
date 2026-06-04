@@ -26,10 +26,10 @@ jobs:
         run: uv sync --group dev
 
       - name: Lint with ruff
-        run: uv run ruff check scripts/rugguard.py solana_rug/ tests/
+        run: uv run ruff check rugguard/ scripts/ tests/
 
       - name: Type check with mypy
-        run: uv run mypy scripts/rugguard.py solana_rug/ || true
+        run: uv run mypy rugguard/ || true
 
       - name: Run unit tests
         run: uv run pytest tests/test_checks.py -v -k "not slow" --tb=short
