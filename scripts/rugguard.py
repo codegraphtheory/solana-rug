@@ -1188,6 +1188,9 @@ def rug_check_wallet(address: str) -> dict:
 # ── Watch / History / Webhook Support ──────────────────────────────────────
 
 DEFAULT_HISTORY_DB = os.environ.get("SOLANA_RUG_HISTORY_DB", os.path.expanduser("~/.solana-rug/history.sqlite3"))
+HISTORY_RETENTION_DAYS = int(os.environ.get("SOLANA_RUG_HISTORY_RETENTION_DAYS", "90"))
+WEBHOOK_COOLDOWN_SECONDS = 3600  # at most 1 alert per token per hour
+_last_webhook_alert: dict[str, float] = {}  # mint -> timestamp of last alert
 
 def _risk_signature(report: RugReport) -> dict:
     """Return stable fields used to decide whether a watched token changed."""
@@ -1221,7 +1224,16 @@ def ensure_history_db(path: str = DEFAULT_HISTORY_DB) -> str:
             """
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_token_scores_mint_time ON token_scores(mint, checked_at)")
+    prune_history(db_path)
     return db_path
+
+
+def prune_history(path: str = DEFAULT_HISTORY_DB) -> int:
+    """Delete token_score rows older than HISTORY_RETENTION_DAYS. Returns count of deleted rows."""
+    cutoff = int(time.time()) - HISTORY_RETENTION_DAYS * 86400
+    with sqlite3.connect(os.path.expanduser(path)) as conn:
+        cursor = conn.execute("DELETE FROM token_scores WHERE checked_at < ?", (cutoff,))
+        return cursor.rowcount
 
 def load_last_history(mint: str, path: str = DEFAULT_HISTORY_DB) -> dict | None:
     """Load the most recent saved signature for a mint."""
@@ -1296,6 +1308,8 @@ def describe_watch_change(
 
 def send_webhook(url: str, payload: dict, timeout: int = 8) -> bool:
     """POST a JSON alert payload to a webhook URL."""
+    if not url.startswith("https://"):
+        raise ValueError(f"webhook URL must use https://, got: {url[:30]}...")
     data = json.dumps(payload, default=str).encode("utf-8")
     req = urllib.request.Request(
         url,
@@ -1366,11 +1380,20 @@ def cli_watch(args: list[str]) -> None:
             "warnings": report.warnings,
         }
         if opts["webhook"] and changed:
-            try:
-                event["webhook_sent"] = send_webhook(opts["webhook"], event)
-            except Exception as exc:
-                event["webhook_sent"] = False
-                event["webhook_error"] = str(exc)
+            now = time.time()
+            last_alert = WEBHOOK_COOLDOWN_SECONDS  # default: allow if never alerted
+            if mint in _last_webhook_alert:
+                last_alert = now - _last_webhook_alert[mint]
+            if last_alert >= WEBHOOK_COOLDOWN_SECONDS:
+                try:
+                    event["webhook_sent"] = send_webhook(opts["webhook"], event)
+                    _last_webhook_alert[mint] = now
+                except Exception as exc:
+                    event["webhook_sent"] = False
+                    event["webhook_error"] = str(exc)
+            else:
+                cooldown_remaining = int(WEBHOOK_COOLDOWN_SECONDS - last_alert)
+                event["webhook_cooldown"] = cooldown_remaining
         print(json.dumps(event, indent=2, default=str), flush=True)
         iteration += 1
         if opts["iterations"] and iteration >= opts["iterations"]:

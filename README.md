@@ -159,6 +159,7 @@ Webhook payloads use the same JSON event shape and are sent only when a change/t
 | `SOLANA_RUG_HISTORY_DB` | `~/.solana-rug/history.sqlite3` | SQLite path for watch-mode score history. |
 | `SOLANA_RUG_WEBHOOK_URL` | empty | Optional webhook URL for watch-mode alerts. |
 | `SOLANA_RUG_WATCH_INTERVAL` | `60` | Default watch interval in seconds. |
+| `SOLANA_RUG_HISTORY_RETENTION_DAYS` | `90` | Auto-prune history entries older than this many days. |
 
 ---
 
