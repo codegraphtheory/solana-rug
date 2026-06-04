@@ -450,4 +450,30 @@ def test_wallet_scan() -> None:
     assert "address" in result
     assert result["address"] == TEST_WALLET
     assert "total_tokens" in result
-    assert isinstance(result["total_tokens"], int)
+    assert isinstance(result['total_tokens'], int)
+
+
+# ── Concurrent Scan Tests ─────────────────────────────────────────────────
+
+class TestConcurrentWallet:
+    def test_rug_check_token_safe(self):
+        from rugguard import _rug_check_token_safe
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
+        # Test with invalid mint — should not crash
+        mint, score, level, warnings = _rug_check_token_safe("InvalidMint123")
+        assert isinstance(mint, str)
+        assert isinstance(score, (int, float))
+        assert isinstance(level, str)
+        assert isinstance(warnings, list)
+
+    def test_sequential_fallback(self):
+        """WALLET_SCAN_WORKERS=1 should fall back to sequential mode."""
+        import os
+        os.environ['WALLET_SCAN_WORKERS'] = '1'
+        # Import after setting env
+        from rugguard import rug_check_wallet_concurrent
+        # Should complete without error (RPC call may fail gracefully)
+        result = rug_check_wallet_concurrent("9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM")
+        assert 'address' in result
+        assert isinstance(result.get('total_tokens', 0), int)
