@@ -1,12 +1,12 @@
 [project]
 name = "solana-rug"
-version = "0.1.0"
+version = "0.1.1"
 description = "On-chain rug-pull detection for Solana tokens — Safety Score 0-100, zero paid APIs required."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [
-    { name = "Hermes Agent / Solana Rug Guard" },
+    { name = "RugpullNet", email = "codegraphtheory@pm.me" },
 ]
 
 keywords = ["solana", "rug-check", "blockchain", "security", "defi", "crypto"]
@@ -25,9 +25,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/NousResearch/hermes-agent/tree/main/optional-skills/blockchain/solana-rug"
-Repository = "https://github.com/NousResearch/hermes-agent"
-"Bug Tracker" = "https://github.com/NousResearch/hermes-agent/issues"
+Homepage = "https://rug-pull.net"
+Repository = "https://github.com/rugpullnet/solana-rug"
+"Bug Tracker" = "https://github.com/rugpullnet/solana-rug/issues"
 
 [project.scripts]
 solana-rug = "rugguard:main"
