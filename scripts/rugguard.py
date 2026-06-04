@@ -1745,6 +1745,50 @@ def format_json(report: RugReport) -> str:
     return json.dumps(report.to_dict(), indent=2, default=str)
 
 
+def _svg_badge(report: RugReport, style: str = "flat", label: str = "safety") -> str:
+    """Generate a shields.io-compatible SVG badge."""
+    score = report.safety_score
+    level = report.risk_level
+    if score >= 70:
+        bg = "#4c1"
+    elif score >= 40:
+        bg = "#e67e22"
+    elif score >= 20:
+        bg = "#e74c3c"
+    else:
+        bg = "#c0392b"
+
+    label_text = label
+    value_text = str(score) + "/100 - " + level
+    label_w = max(len(label_text) * 7 + 10, 40)
+    value_w = len(value_text) * 7 + 10
+    total_w = label_w + value_w
+    h = 20
+    rx = 3 if style == "flat" else 0
+    lx = label_w // 2
+    vx = label_w + value_w // 2
+
+    lines = []
+    lines.append('<svg xmlns="http://www.w3.org/2000/svg" width="' + str(total_w) + '" height="' + str(h) + '">')
+    lines.append('<linearGradient id="l" x2="0" y2="1">'
+                 '<stop offset="0%" stop-color="#bbb" stop-opacity=".1"/>'
+                 '<stop offset="100%" stop-color="#000" stop-opacity=".1"/>'
+                 '</linearGradient>')
+    lines.append('<rect width="' + str(label_w) + '" height="' + str(h) + '" fill="#555" rx="' + str(rx) + '"/>')
+    lines.append('<rect x="' + str(label_w) + '" width="' + str(value_w)
+                 + '" height="' + str(h) + '" fill="' + bg + '" rx="' + str(rx) + '"/>')
+    lines.append('<rect width="' + str(total_w) + '" height="' + str(h) + '" fill="url(#l)"/>')
+    lines.append('<g fill="#fff" font-family="Arial,sans-serif" font-size="11" text-anchor="middle">')
+    lines.append('<text x="' + str(lx) + '" y="14">' + _escape_svg(label_text) + '</text>')
+    lines.append('<text x="' + str(vx) + '" y="14">' + _escape_svg(value_text) + '</text>')
+    lines.append('</g></svg>')
+    return "\n".join(lines)
+
+
+def _escape_svg(text: str) -> str:
+    return (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
 def _report_csv_rows(report: RugReport) -> list[dict]:
     """Build a list of flat dicts (one per token) for CSV/JSONL export from a token report."""
     d = report.to_dict()
@@ -2030,6 +2074,31 @@ def cli_wallet(args: list[str]) -> None:
         sys.exit(2)
 
 
+def cli_badge(args: list[str]) -> None:
+    """Generate an SVG safety score badge for a token."""
+    if not args:
+        print('Usage: python rugguard.py badge <MINT> [--style flat|flat-square|plastic]',
+              '[--label TEXT]', file=sys.stderr)
+        sys.exit(1)
+
+    mint = args[0]
+    style = "flat"
+    label = "safety"
+
+    for idx, a in enumerate(args):
+        if a.startswith("--style="):
+            style = a.split("=", 1)[1]
+        elif a == "--style" and idx + 1 < len(args):
+            style = args[idx + 1]
+        if a.startswith("--label="):
+            label = a.split("=", 1)[1]
+        elif a == "--label" and idx + 1 < len(args):
+            label = args[idx + 1]
+
+    report = rug_check_token(mint.strip())
+    print(_svg_badge(report, style=style, label=label))
+
+
 def cli_compare(args: list[str]) -> None:
     """Compare multiple tokens side-by-side."""
     if not args:
@@ -2095,6 +2164,7 @@ def cli_help() -> None:
 USAGE:
     python rugguard.py token <MINT_ADDRESS> [--json|--markdown]
     python rugguard.py wallet <WALLET_ADDRESS>
+    python rugguard.py badge <MINT> [--style flat|flat-square|plastic] [--label TEXT]
     python rugguard.py compare <MINT1> <MINT2> [<MINT3> ...] [--json]
     python rugguard.py watch <MINT_ADDRESS> [--interval 60] [--iterations 0]
         [--history PATH] [--webhook URL] [--threshold SCORE]
@@ -2120,6 +2190,7 @@ EXAMPLES:
     python rugguard.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --markdown
     python rugguard.py wallet 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM
     python rugguard.py wallet 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM --export jsonl
+    python rugguard.py badge DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263
     python rugguard.py compare DezXAZ8z... EPjFWdd5... [--json]
     python rugguard.py watch <MINT_ADDRESS> --iterations 1 --threshold 70
 
@@ -2141,6 +2212,8 @@ def main() -> None:
         cli_token(args)
     elif cmd == "wallet":
         cli_wallet(args)
+    elif cmd == "badge":
+        cli_badge(args)
     elif cmd == "compare":
         cli_compare(args)
     elif cmd == "watch":
