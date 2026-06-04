@@ -1,11 +1,8 @@
 # Cloudflare Pages redirects
-# https://developers.cloudflare.com/pages/platform/redirects/
+# Note: Cloudflare auto-serves index.html at root — no rewrite needed
 
-# Root serves the landing page
-/  /index.html  200
-
-# GitHub repo shortcut
-/repo  https://github.com/rugpullnet/solana-rug  302
-/github  https://github.com/rugpullnet/solana-rug  302
-/pypi  https://pypi.org/project/solana-rug/  302
-/chart  https://dexscreener.com/solana/4sHKYieWsGtrmtqjdXPRzSdVywXZ1jUQGbM8QbkBXMB9  302
+# Shortcuts
+/repo      https://github.com/rugpullnet/solana-rug  302
+/github    https://github.com/rugpullnet/solana-rug  302
+/pypi      https://pypi.org/project/solana-rug/  302
+/chart     https://dexscreener.com/solana/4sHKYieWsGtrmtqjdXPRzSdVywXZ1jUQGbM8QbkBXMB9  302
