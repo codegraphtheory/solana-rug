@@ -25,6 +25,7 @@ from rugguard import (  # noqa: E402
     RugReport,
     RugScore,
     TokenMeta,
+    _sparkline_from_change,
     check_authorities,
     compute_safety_score,
     compute_score_components,
@@ -450,4 +451,28 @@ def test_wallet_scan() -> None:
     assert "address" in result
     assert result["address"] == TEST_WALLET
     assert "total_tokens" in result
-    assert isinstance(result["total_tokens"], int)
+    assert isinstance(result['total_tokens'], int)
+
+
+# Sparkline Tests
+
+class TestSparkline:
+    def test_bullish(self):
+        result = _sparkline_from_change(15.5)
+        assert result is not None
+        assert len(result) >= 10
+
+    def test_bearish(self):
+        result = _sparkline_from_change(-8.2)
+        assert result is not None
+        assert len(result) >= 10
+
+    def test_flat(self):
+        assert _sparkline_from_change(0) is None
+        assert _sparkline_from_change(None) is None
+
+    def test_small_change_no_color(self):
+        result = _sparkline_from_change(0.5)
+        assert result is not None
+        assert '\U0001f7e2' not in result
+        assert '\U0001f534' not in result
