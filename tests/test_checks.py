@@ -127,9 +127,10 @@ class TestTokenHolders:
 
     def test_holder_fallback_gpa(self) -> None:
         """Fallback to getProgramAccounts when getTokenLargestAccounts fails."""
-        import rugguard
+        import rugguard.onchain as oc_mod
+        from rugguard import fetch_token_holders
 
-        original_rpc = rugguard._rpc_call
+        original_rpc = oc_mod._rpc_call
 
         def mock_rpc_call(method, params, *args, **kwargs):
             if method == "getTokenLargestAccounts":
@@ -165,9 +166,9 @@ class TestTokenHolders:
                 ]
             return original_rpc(method, params, *args, **kwargs)
 
-        with patch("rugguard._rpc_call", side_effect=mock_rpc_call):
-            with patch("rugguard._dex_screener_fetch", return_value=None):
-                holders = rugguard.fetch_token_holders("dummy_mint", 6)
+        with patch("rugguard.onchain._rpc_call", side_effect=mock_rpc_call):
+            with patch("rugguard.onchain._dex_screener_fetch", return_value=None):
+                holders = fetch_token_holders("dummy_mint", 6)
                 assert holders is not None
                 assert holders.total_holders == 2
                 assert holders.dev_wallet_pct == 60.0

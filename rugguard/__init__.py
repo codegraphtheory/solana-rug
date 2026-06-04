@@ -11,17 +11,30 @@ Usage:
 from importlib.metadata import version as _version
 
 from .analysis import RugReport, rug_check_token, rug_check_wallet
-from .formatting import format_csv, format_json, format_jsonl, format_markdown
+from .formatting import (
+    _format_comparison_table,
+    _format_timeline,
+    _format_timeline_json,
+    _report_csv_rows,
+    _sparkline_from_change,
+    _svg_badge,
+    _wallet_csv_rows,
+    format_csv,
+    format_json,
+    format_jsonl,
+    format_markdown,
+)
 from .onchain import (
     HolderInfo,
     HoneypotResult,
     LiquidityInfo,
     MintHistory,
     TokenMeta,
+    estimate_token_age,
     fetch_token_holders,
     fetch_token_meta,
 )
-from .scoring import RugFlags, RugScore
+from .scoring import RugFlags, RugScore, check_authorities, compute_safety_score, compute_score_components
 from .watch import (
     cli_watch,
     describe_watch_change,
@@ -44,6 +57,13 @@ __all__ = [
     "format_json",
     "format_csv",
     "format_jsonl",
+    "_format_comparison_table",
+    "_format_timeline",
+    "_format_timeline_json",
+    "_report_csv_rows",
+    "_sparkline_from_change",
+    "_svg_badge",
+    "_wallet_csv_rows",
     "RugReport",
     "RugScore",
     "RugFlags",
@@ -52,8 +72,12 @@ __all__ = [
     "HolderInfo",
     "HoneypotResult",
     "MintHistory",
+    "estimate_token_age",
     "fetch_token_meta",
     "fetch_token_holders",
+    "check_authorities",
+    "compute_safety_score",
+    "compute_score_components",
     "cli_watch",
     "ensure_history_db",
     "load_last_history",
