@@ -1,4 +1,4 @@
-# Solana Rug Guard
+# Solana Rug Guard $RUG
 
 [![CI](https://github.com/rugpullnet/solana-rug/actions/workflows/ci.yml/badge.svg)](https://github.com/rugpullnet/solana-rug/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
