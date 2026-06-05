@@ -66,4 +66,5 @@ jobs:
           files: |
             dist/*
             scripts/solana-rug.py
+            scripts/rugguard.py
           generate_release_notes: false
