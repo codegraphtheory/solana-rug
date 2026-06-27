@@ -11,3 +11,6 @@ __pycache__/
 htmlcov/
 .venv/
 demos/vhs/staging/home/
+demos/demo.gif
+assets/demos/
+demos/vhs/out/
