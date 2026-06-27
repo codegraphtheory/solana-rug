@@ -12,6 +12,8 @@ Type "python3 scripts/rugguard.py --help" Enter
 Sleep 3s
 
 Hide
+Type "source demos/vhs/sanitize-recording-env.sh" Enter
+Sleep 300ms
 Type "python3 scripts/rugguard.py token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 --md | head -18" Enter
 Sleep 16s
 Show
